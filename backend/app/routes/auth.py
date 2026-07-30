@@ -1,5 +1,5 @@
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Response
 
@@ -58,7 +58,7 @@ def register(
         "name": payload.name,
         "email": email,
         "password_hash": hash_password(payload.password),
-        "created_at": datetime.utcnow(),
+        "created_at": datetime.now(timezone.utc),
     }
 
     result = users_collection.insert_one(user_doc)

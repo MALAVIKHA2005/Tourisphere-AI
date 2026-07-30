@@ -6,7 +6,7 @@ load_dotenv()
 
 MONGO_URI = os.getenv("MONGO_URI")
 
-client = MongoClient(MONGO_URI)
+client = MongoClient(MONGO_URI, tz_aware=True)
 
 db = client["travel_recommendation"]
 

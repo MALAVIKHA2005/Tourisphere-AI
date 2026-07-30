@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from app.database.mongodb import travel_history_collection
 from app.utils.identity import get_destination_key
 
@@ -33,7 +33,7 @@ def save_travel_history(destination: dict, user_id: str):
 
             "source": "Recommendation",
 
-            "viewed_at": datetime.utcnow()
+            "viewed_at": datetime.now(timezone.utc)
 
         }
 

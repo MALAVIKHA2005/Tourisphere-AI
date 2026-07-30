@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from app.database.mongodb import search_history_collection
 
 
@@ -15,7 +15,7 @@ def save_search(search: dict, user_id: str):
         "month": search.get("month"),
         "query": search.get("query"),
         "result_count": search.get("result_count", 0),
-        "searched_at": datetime.utcnow(),
+        "searched_at": datetime.now(timezone.utc),
     }
 
     search_history_collection.insert_one(record)

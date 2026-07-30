@@ -1,6 +1,6 @@
 import os
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import requests
 from dotenv import load_dotenv
@@ -82,8 +82,8 @@ def _resolve_city_code(city, token):
 
 def _search_hotel_offers(city_code, token):
     try:
-        check_in = (datetime.utcnow() + timedelta(days=30)).strftime("%Y-%m-%d")
-        check_out = (datetime.utcnow() + timedelta(days=31)).strftime("%Y-%m-%d")
+        check_in = (datetime.now(timezone.utc) + timedelta(days=30)).strftime("%Y-%m-%d")
+        check_out = (datetime.now(timezone.utc) + timedelta(days=31)).strftime("%Y-%m-%d")
 
         response = requests.get(
             f"{AMADEUS_BASE_URL}/v3/shopping/hotel-offers",

@@ -1,5 +1,5 @@
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import bcrypt
 import jwt
@@ -32,7 +32,7 @@ def create_access_token(user_id: str, email: str) -> str:
     payload = {
         "sub": user_id,
         "email": email,
-        "exp": datetime.utcnow() + timedelta(days=JWT_EXPIRE_DAYS),
+        "exp": datetime.now(timezone.utc) + timedelta(days=JWT_EXPIRE_DAYS),
     }
 
     return jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
@@ -73,7 +73,7 @@ def merge_guest_data(guest_id: str, user_id: str):
                     "user_id": user_id,
                     "destination_key": favorite["destination_key"],
                     "destination": favorite["destination"],
-                    "added_at": favorite.get("added_at", datetime.utcnow()),
+                    "added_at": favorite.get("added_at", datetime.now(timezone.utc)),
                 }
             },
             upsert=True,
