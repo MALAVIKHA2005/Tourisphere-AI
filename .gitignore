@@ -1,0 +1,26 @@
+# Secrets -- never commit
+backend/.env
+frontend/.env
+
+# Backend
+backend/venv/
+backend/__pycache__/
+**/__pycache__/
+*.pyc
+backend/*.log
+
+# Frontend
+frontend/node_modules/
+frontend/build/
+
+# Backups / archives (kept locally, not in version control)
+project.zip
+
+# OS cruft
+.DS_Store
+Thumbs.db
+
+# Tooling artifacts / stray scratch files
+.claude/
+frontend/.claude/
+frontend/view analytics.txt
