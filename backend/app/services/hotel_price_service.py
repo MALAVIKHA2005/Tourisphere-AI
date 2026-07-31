@@ -1,5 +1,6 @@
 import os
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 
 import requests
@@ -46,15 +47,18 @@ def _search_hotels(city, country):
 
         country_lower = (country or "").strip().lower()
 
+        # Exact match only -- a substring check here previously matched
+        # "India" against "Indiana" (US state), silently returning
+        # Indianapolis hotel prices for an Indian destination. Wrong data
+        # is worse than no data, so no unfiltered fallback either: if
+        # nothing matches the country exactly, return nothing.
         matches = [
             item
             for item in results
-            if country_lower and country_lower in (item.get("country") or "").lower()
+            if country_lower and (item.get("country") or "").strip().lower() == country_lower
         ]
 
-        # fall back to unfiltered results if nothing matched the country
-        # (better an approximate price than none at all)
-        return (matches or results)[:HOTEL_SAMPLE_SIZE]
+        return matches[:HOTEL_SAMPLE_SIZE]
 
     except Exception as e:
         print("Xotelo Search Error:", e)
@@ -71,7 +75,7 @@ def _get_rates(hotel_key, check_in, check_out):
                 "chk_in": check_in,
                 "chk_out": check_out,
             },
-            timeout=10,
+            timeout=8,
         )
 
         if response.status_code != 200:
@@ -125,15 +129,16 @@ def get_average_hotel_price(city, country):
             check_in = (datetime.now(timezone.utc) + timedelta(days=30)).strftime("%Y-%m-%d")
             check_out = (datetime.now(timezone.utc) + timedelta(days=31)).strftime("%Y-%m-%d")
 
-            all_rates = []
+            hotel_keys = [h.get("hotel_key") for h in hotels if h.get("hotel_key")]
 
-            for hotel in hotels:
-                hotel_key = hotel.get("hotel_key")
+            # Independent lookups -- run concurrently so the worst case is
+            # one timeout, not HOTEL_SAMPLE_SIZE of them stacked in series.
+            with ThreadPoolExecutor(max_workers=len(hotel_keys) or 1) as pool:
+                rate_lists = pool.map(
+                    lambda key: _get_rates(key, check_in, check_out), hotel_keys
+                )
 
-                if not hotel_key:
-                    continue
-
-                all_rates.extend(_get_rates(hotel_key, check_in, check_out))
+            all_rates = [rate for rates in rate_lists for rate in rates]
 
             if all_rates:
                 result = {
