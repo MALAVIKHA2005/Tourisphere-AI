@@ -7,107 +7,91 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-AMADEUS_API_KEY = os.getenv("AMADEUS_API_KEY")
-AMADEUS_API_SECRET = os.getenv("AMADEUS_API_SECRET")
+RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY")
+RAPIDAPI_HOST = "xotelo-hotel-prices.p.rapidapi.com"
+BASE_URL = f"https://{RAPIDAPI_HOST}/api"
 
-AMADEUS_BASE_URL = "https://test.api.amadeus.com"
+HEADERS = {
+    "x-rapidapi-host": RAPIDAPI_HOST,
+    "x-rapidapi-key": RAPIDAPI_KEY,
+}
 
-CACHE_TTL_SECONDS = 3600
+# Sampling a handful of hotels per city keeps this within the free tier's
+# 1,000 requests/month (1 search + up to HOTEL_SAMPLE_SIZE rate lookups per
+# city, cached hard afterwards).
+HOTEL_SAMPLE_SIZE = 3
+CACHE_TTL_SECONDS = 24 * 60 * 60
 
-_token_cache = {"access_token": None, "expires_at": 0}
 _price_cache = {}
 
 
-def _get_access_token():
-    if not AMADEUS_API_KEY or not AMADEUS_API_SECRET:
-        return None
-
-    if (
-        _token_cache["access_token"]
-        and _token_cache["expires_at"] > time.time()
-    ):
-        return _token_cache["access_token"]
-
+def _search_hotels(city, country):
     try:
-        response = requests.post(
-            f"{AMADEUS_BASE_URL}/v1/security/oauth2/token",
-            data={
-                "grant_type": "client_credentials",
-                "client_id": AMADEUS_API_KEY,
-                "client_secret": AMADEUS_API_SECRET,
-            },
+        response = requests.get(
+            f"{BASE_URL}/search",
+            headers=HEADERS,
+            params={"query": city, "location_type": "accommodation"},
             timeout=10,
         )
 
         if response.status_code != 200:
-            print("Amadeus Auth Error:", response.status_code, response.text)
-            return None
+            return []
 
         data = response.json()
 
-        _token_cache["access_token"] = data["access_token"]
-        _token_cache["expires_at"] = time.time() + data.get("expires_in", 1800) - 60
+        if data.get("error"):
+            return []
 
-        return _token_cache["access_token"]
+        results = (data.get("result") or {}).get("list") or []
+
+        country_lower = (country or "").strip().lower()
+
+        matches = [
+            item
+            for item in results
+            if country_lower and country_lower in (item.get("country") or "").lower()
+        ]
+
+        # fall back to unfiltered results if nothing matched the country
+        # (better an approximate price than none at all)
+        return (matches or results)[:HOTEL_SAMPLE_SIZE]
 
     except Exception as e:
-        print("Amadeus Auth Error:", e)
-        return None
+        print("Xotelo Search Error:", e)
+        return []
 
 
-def _resolve_city_code(city, token):
+def _get_rates(hotel_key, check_in, check_out):
     try:
         response = requests.get(
-            f"{AMADEUS_BASE_URL}/v1/reference-data/locations/cities",
-            headers={"Authorization": f"Bearer {token}"},
-            params={"keyword": city, "max": 1},
+            f"{BASE_URL}/rates",
+            headers=HEADERS,
+            params={
+                "hotel_key": hotel_key,
+                "chk_in": check_in,
+                "chk_out": check_out,
+            },
             timeout=10,
         )
 
         if response.status_code != 200:
-            print("Amadeus City Search Error:", response.status_code, response.text)
-            return None
-
-        data = response.json().get("data", [])
-
-        if not data:
-            return None
-
-        return data[0].get("iataCode")
-
-    except Exception as e:
-        print("Amadeus City Search Error:", e)
-        return None
-
-
-def _search_hotel_offers(city_code, token):
-    try:
-        check_in = (datetime.now(timezone.utc) + timedelta(days=30)).strftime("%Y-%m-%d")
-        check_out = (datetime.now(timezone.utc) + timedelta(days=31)).strftime("%Y-%m-%d")
-
-        response = requests.get(
-            f"{AMADEUS_BASE_URL}/v3/shopping/hotel-offers",
-            headers={"Authorization": f"Bearer {token}"},
-            params={
-                "cityCode": city_code,
-                "checkInDate": check_in,
-                "checkOutDate": check_out,
-                "adults": 1,
-                "roomQuantity": 1,
-                "currency": "USD",
-                "bestRateOnly": "true",
-            },
-            timeout=15,
-        )
-
-        if response.status_code != 200:
-            print("Amadeus Hotel Offers Error:", response.status_code, response.text)
             return []
 
-        return response.json().get("data", [])
+        data = response.json()
+
+        if data.get("error"):
+            return []
+
+        rates = (data.get("result") or {}).get("rates") or []
+
+        return [
+            r["rate"]
+            for r in rates
+            if isinstance(r.get("rate"), (int, float))
+        ]
 
     except Exception as e:
-        print("Amadeus Hotel Offers Error:", e)
+        print("Xotelo Rates Error:", e)
         return []
 
 
@@ -115,8 +99,8 @@ def get_average_hotel_price(city, country):
     """
     Returns {"available": True, "average_price": float, "currency": "USD",
     "sample_size": int} for a real live average nightly hotel price, or
-    {"available": False} if Amadeus isn't configured or has no sandbox data
-    for this destination.
+    {"available": False} if the API isn't configured or has no data for
+    this destination.
     """
 
     cache_key = f"{(city or '').lower()}|{(country or '').lower()}"
@@ -127,29 +111,29 @@ def get_average_hotel_price(city, country):
 
     result = {"available": False}
 
-    token = _get_access_token()
+    if RAPIDAPI_KEY and city:
+        hotels = _search_hotels(city, country)
 
-    if token and city:
-        city_code = _resolve_city_code(city, token)
+        if hotels:
+            check_in = (datetime.now(timezone.utc) + timedelta(days=30)).strftime("%Y-%m-%d")
+            check_out = (datetime.now(timezone.utc) + timedelta(days=31)).strftime("%Y-%m-%d")
 
-        if city_code:
-            offers = _search_hotel_offers(city_code, token)
+            all_rates = []
 
-            prices = []
+            for hotel in hotels:
+                hotel_key = hotel.get("hotel_key")
 
-            for hotel_offer in offers:
-                try:
-                    price = float(hotel_offer["offers"][0]["price"]["total"])
-                    prices.append(price)
-                except (KeyError, IndexError, ValueError, TypeError):
+                if not hotel_key:
                     continue
 
-            if prices:
+                all_rates.extend(_get_rates(hotel_key, check_in, check_out))
+
+            if all_rates:
                 result = {
                     "available": True,
-                    "average_price": round(sum(prices) / len(prices), 2),
+                    "average_price": round(sum(all_rates) / len(all_rates), 2),
                     "currency": "USD",
-                    "sample_size": len(prices),
+                    "sample_size": len(all_rates),
                 }
 
     _price_cache[cache_key] = {
