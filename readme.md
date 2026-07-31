@@ -29,6 +29,7 @@ Live hotel pricing is powered by [Xotelo](https://xotelo.com/) via RapidAPI (Ama
 - Authentication (JWT, guest-to-account data merge)
 - Production hardening (secrets, caching, CORS/cookie config, privacy controls)
 - Nearby Restaurant Recommendations (Geoapify-powered, per destination)
+- Hotel Search with real live pricing per provider (Xotelo-powered, per destination)
 
 ---
 
@@ -43,7 +44,7 @@ Live hotel pricing is powered by [Xotelo](https://xotelo.com/) via RapidAPI (Ama
 | Phase 5 | User Analytics & Travel History | ✅ Completed |
 | Phase 6 | Authentication | ✅ Completed |
 | Phase 7 | Food & Restaurant | ✅ Completed |
-| Phase 8 | Hotels | ⏳ Planned |
+| Phase 8 | Hotels | ✅ Completed |
 | Phase 9 | Transport | ⏳ Planned |
 | Phase 10 | Lifestyle | ⏳ Planned |
 | Phase 11 | Education | ⏳ Planned |

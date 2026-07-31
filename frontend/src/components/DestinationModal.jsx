@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { fetchHotelPrice } from "../services/hotelPriceService";
 import { fetchRestaurants } from "../services/restaurantService";
+import { fetchHotels } from "../services/hotelService";
 
 const DestinationModal = ({ destination, onClose }) => {
   const [hotelPrice, setHotelPrice] = useState(null);
@@ -8,6 +9,8 @@ const DestinationModal = ({ destination, onClose }) => {
   const [restaurants, setRestaurants] = useState([]);
   const [loadingRestaurants, setLoadingRestaurants] = useState(false);
   const [cuisineFilter, setCuisineFilter] = useState("All");
+  const [hotels, setHotels] = useState([]);
+  const [loadingHotels, setLoadingHotels] = useState(false);
 
   useEffect(() => {
     if (!destination) return;
@@ -26,6 +29,13 @@ const DestinationModal = ({ destination, onClose }) => {
     fetchRestaurants(destination.city || destination.name, destination.country)
       .then(setRestaurants)
       .finally(() => setLoadingRestaurants(false));
+
+    setHotels([]);
+    setLoadingHotels(true);
+
+    fetchHotels(destination.city || destination.name, destination.country)
+      .then(setHotels)
+      .finally(() => setLoadingHotels(false));
   }, [destination]);
 
   if (!destination) return null;
@@ -113,6 +123,58 @@ const DestinationModal = ({ destination, onClose }) => {
                 <strong>Coordinates:</strong>{" "}
                 {destination.latitude}, {destination.longitude}
               </p>
+            )}
+          </div>
+
+          <div className="mt-6">
+            <h3 className="text-lg font-bold mb-3">🏨 Hotels Nearby</h3>
+
+            {loadingHotels && (
+              <p className="text-sm text-gray-500">Checking live hotel prices...</p>
+            )}
+
+            {!loadingHotels && hotels.length === 0 && (
+              <p className="text-sm text-gray-500">No hotel data available for this area.</p>
+            )}
+
+            {!loadingHotels && hotels.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {hotels.map((h, i) => (
+                  <div key={i} className="bg-gray-50 rounded-lg overflow-hidden">
+                    {h.image && (
+                      <img
+                        src={h.image}
+                        alt={h.name}
+                        className="w-full h-28 object-cover"
+                      />
+                    )}
+                    <div className="p-3">
+                      <p className="font-semibold">{h.name}</p>
+                      {h.address && (
+                        <p className="text-xs text-gray-400 mt-1">{h.address}</p>
+                      )}
+                      {h.rates?.length > 0 ? (
+                        <p className="text-sm text-green-700 font-semibold mt-1">
+                          From ${h.rates[0].price} / night ({h.rates[0].provider})
+                        </p>
+                      ) : (
+                        <p className="text-xs text-gray-400 mt-1">No live rates found</p>
+                      )}
+                      {h.url && (
+                        <a
+                          href={h.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-blue-600 hover:underline mt-1 inline-block"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          View & Book on TripAdvisor →
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 

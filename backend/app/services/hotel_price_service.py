@@ -89,7 +89,7 @@ def _get_rates(hotel_key, check_in, check_out):
         rates = (data.get("result") or {}).get("rates") or []
 
         return [
-            r["rate"]
+            {"provider": r.get("name") or r.get("code") or "Unknown", "price": r["rate"]}
             for r in rates
             if isinstance(r.get("rate"), (int, float))
         ]
@@ -138,7 +138,7 @@ def get_average_hotel_price(city, country):
                     lambda key: _get_rates(key, check_in, check_out), hotel_keys
                 )
 
-            all_rates = [rate for rates in rate_lists for rate in rates]
+            all_rates = [rate["price"] for rates in rate_lists for rate in rates]
 
             if all_rates:
                 result = {
@@ -154,3 +154,55 @@ def get_average_hotel_price(city, country):
     }
 
     return result
+
+
+def get_hotels(city, country):
+    """
+    Returns a list of real, individual hotels (name, image, address, real
+    per-provider live prices, TripAdvisor link) for a city -- no star
+    ratings or amenities, since Xotelo doesn't expose that data and we'd
+    rather show nothing than a fabricated number.
+    """
+
+    cache_key = f"hotels|{(city or '').lower()}|{(country or '').lower()}"
+    cached = _price_cache.get(cache_key)
+
+    if cached and cached["expires_at"] > time.time():
+        return cached["result"]
+
+    hotels_out = []
+
+    if RAPIDAPI_KEY and city:
+        hotels = _search_hotels(city, country)
+
+        if not hotels and country and country.lower() != city.lower():
+            hotels = _search_hotels(country, country)
+
+        if hotels:
+            check_in = (datetime.now(timezone.utc) + timedelta(days=30)).strftime("%Y-%m-%d")
+            check_out = (datetime.now(timezone.utc) + timedelta(days=31)).strftime("%Y-%m-%d")
+
+            with ThreadPoolExecutor(max_workers=len(hotels) or 1) as pool:
+                rate_lists = pool.map(
+                    lambda h: _get_rates(h.get("hotel_key"), check_in, check_out), hotels
+                )
+
+            for hotel, rates in zip(hotels, rate_lists):
+                hotels_out.append(
+                    {
+                        "name": hotel.get("name", "Unknown"),
+                        "image": hotel.get("image"),
+                        "address": hotel.get("street_address") or hotel.get("place_name"),
+                        "latitude": hotel.get("latitude"),
+                        "longitude": hotel.get("longitude"),
+                        "url": hotel.get("url"),
+                        "rates": sorted(rates, key=lambda r: r["price"]),
+                    }
+                )
+
+    _price_cache[cache_key] = {
+        "result": hotels_out,
+        "expires_at": time.time() + CACHE_TTL_SECONDS,
+    }
+
+    return hotels_out
