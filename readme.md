@@ -13,6 +13,8 @@ The goal of this platform is to evolve into a complete travel ecosystem that ass
 - **App:** https://tourisphere-ai-maals.vercel.app
 - **API:** https://tourisphere-ai.onrender.com
 
+Live hotel pricing is powered by [Xotelo](https://xotelo.com/) via RapidAPI (Amadeus's self-service developer program was decommissioned in July 2026).
+
 ---
 
 # 🚀 Current Progress
