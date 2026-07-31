@@ -4,7 +4,7 @@
 // start looks like "loading a bit longer," not a broken page.
 export const retryFetch = async (
   fn,
-  { attempts = 3, delayMs = 10000, isValid = (result) => Boolean(result) } = {}
+  { attempts = 6, delayMs = 12000, isValid = (result) => Boolean(result) } = {}
 ) => {
   let lastResult;
 
