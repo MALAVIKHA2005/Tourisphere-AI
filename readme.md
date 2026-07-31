@@ -10,7 +10,7 @@ The goal of this platform is to evolve into a complete travel ecosystem that ass
 
 ## 🔗 Live Demo
 
-- **App:** https://frontend-maals.vercel.app
+- **App:** https://tourisphere-ai-maals.vercel.app
 - **API:** https://tourisphere-ai.onrender.com
 
 ---
