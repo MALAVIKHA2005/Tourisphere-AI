@@ -21,6 +21,7 @@ import {
   fetchDestinations,
 } from "../services/destinationService";
 import { retryFetch } from "../utils/retry";
+import { searchCountries } from "../services/countrySearchService";
 import DestinationModal from "./DestinationModal";
 import AnalyticsCharts from "./AnalyticsCharts";
 
@@ -28,6 +29,9 @@ const RecommendationForm = () => {
   const [searchTerm, setSearchTerm] = useState("");
 
   const [country, setCountry] = useState("");
+  const [countryQuery, setCountryQuery] = useState("");
+  const [countrySuggestions, setCountrySuggestions] = useState([]);
+  const [showCountrySuggestions, setShowCountrySuggestions] = useState(false);
   const [state, setState] = useState("");
   const [budget, setBudget] = useState("");
   const [interest, setInterest] = useState("");
@@ -53,14 +57,6 @@ const RecommendationForm = () => {
     INR: 1,
   });
   const [favorites, setFavorites] = useState([]);
-
-  const countries = [
-    ...new Set(
-    destinationsData.map(
-        (d) => d.country
-    )
-),
-];
 
   const states = [
     ...new Set(
@@ -223,6 +219,28 @@ useEffect(() => {
 
   loadFavorites();
 }, []);
+
+useEffect(() => {
+  if (countryQuery.trim().length < 2) {
+    setCountrySuggestions([]);
+    return;
+  }
+
+  const timeout = setTimeout(async () => {
+    const results = await searchCountries(countryQuery);
+    setCountrySuggestions(results);
+  }, 300);
+
+  return () => clearTimeout(timeout);
+}, [countryQuery]);
+
+const handleSelectCountry = (name) => {
+  setCountry(name);
+  setCountryQuery(name);
+  setShowCountrySuggestions(false);
+  setCountrySuggestions([]);
+};
+
 const loadDestinations = async () => {
 
   setDestinationsLoading(true);
@@ -301,26 +319,38 @@ const convertCost = (cost) => {
 
           {/* Country */}
 
-          <select
-            className="border p-3 rounded-lg"
-            value={country}
-            onChange={(e) =>
-              setCountry(e.target.value)
-            }
-          >
-            <option value="">
-              Select Country
-            </option>
+          <div className="relative">
+            <input
+              type="text"
+              className="border p-3 rounded-lg w-full"
+              placeholder="Type any country..."
+              value={countryQuery}
+              onChange={(e) => {
+                setCountryQuery(e.target.value);
+                setCountry("");
+                setShowCountrySuggestions(true);
+              }}
+              onFocus={() => setShowCountrySuggestions(true)}
+              onBlur={() =>
+                setTimeout(() => setShowCountrySuggestions(false), 150)
+              }
+            />
 
-            {countries.map((countryName) => (
-              <option
-                key={countryName}
-                value={countryName}
-              >
-                {countryName}
-              </option>
-            ))}
-          </select>
+            {showCountrySuggestions && countrySuggestions.length > 0 && (
+              <div className="absolute z-20 bg-white border rounded-lg mt-1 w-full max-h-56 overflow-y-auto shadow-lg">
+                {countrySuggestions.map((c) => (
+                  <button
+                    type="button"
+                    key={c.country_code}
+                    onClick={() => handleSelectCountry(c.name)}
+                    className="block w-full text-left px-3 py-2 hover:bg-gray-100"
+                  >
+                    {c.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* State */}
 
