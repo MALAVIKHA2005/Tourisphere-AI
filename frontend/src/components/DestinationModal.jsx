@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { fetchHotelPrice } from "../services/hotelPriceService";
+import { fetchRestaurants } from "../services/restaurantService";
 
 const DestinationModal = ({ destination, onClose }) => {
   const [hotelPrice, setHotelPrice] = useState(null);
   const [loadingPrice, setLoadingPrice] = useState(false);
+  const [restaurants, setRestaurants] = useState([]);
+  const [loadingRestaurants, setLoadingRestaurants] = useState(false);
 
   useEffect(() => {
     if (!destination) return;
@@ -14,6 +17,13 @@ const DestinationModal = ({ destination, onClose }) => {
     fetchHotelPrice(destination.city || destination.name, destination.country)
       .then(setHotelPrice)
       .finally(() => setLoadingPrice(false));
+
+    setRestaurants([]);
+    setLoadingRestaurants(true);
+
+    fetchRestaurants(destination.city || destination.name, destination.country)
+      .then(setRestaurants)
+      .finally(() => setLoadingRestaurants(false));
   }, [destination]);
 
   if (!destination) return null;
@@ -101,6 +111,32 @@ const DestinationModal = ({ destination, onClose }) => {
                 <strong>Coordinates:</strong>{" "}
                 {destination.latitude}, {destination.longitude}
               </p>
+            )}
+          </div>
+
+          <div className="mt-6">
+            <h3 className="text-lg font-bold mb-3">🍽️ Nearby Restaurants</h3>
+
+            {loadingRestaurants && (
+              <p className="text-sm text-gray-500">Finding restaurants nearby...</p>
+            )}
+
+            {!loadingRestaurants && restaurants.length === 0 && (
+              <p className="text-sm text-gray-500">No restaurant data available for this area.</p>
+            )}
+
+            {!loadingRestaurants && restaurants.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {restaurants.map((r, i) => (
+                  <div key={i} className="bg-gray-50 rounded-lg p-3">
+                    <p className="font-semibold">{r.name}</p>
+                    <p className="text-xs text-gray-500">{r.cuisine}</p>
+                    {r.address && (
+                      <p className="text-xs text-gray-400 mt-1">{r.address}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 
