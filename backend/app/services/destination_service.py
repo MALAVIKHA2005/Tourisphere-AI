@@ -91,7 +91,14 @@ def _fetch_places(country):
                 p = item["properties"]
 
                 place_name = p.get("name", "Unknown")
-                place_city = p.get("city") or country
+                # Geoapify often omits "city" for landmarks in smaller or
+                # remote areas (e.g. a monument in Ladakh) -- falling back
+                # to the literal string "Unknown" broke downstream lookups
+                # that use this as a real search query (hotel prices,
+                # weather), since no API has a place called "Unknown".
+                # Fall back to state, then country -- always a real,
+                # searchable location.
+                place_city = p.get("city") or p.get("state") or country
 
                 # Searching by the place's own city (not the whole
                 # country) gives Pexels a much more specific match --
@@ -104,7 +111,7 @@ def _fetch_places(country):
 
                     "name": place_name,
 
-                    "city": p.get("city", "Unknown"),
+                    "city": place_city,
 
                     "country": p.get("country", country),
 
