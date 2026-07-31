@@ -7,6 +7,7 @@ const DestinationModal = ({ destination, onClose }) => {
   const [loadingPrice, setLoadingPrice] = useState(false);
   const [restaurants, setRestaurants] = useState([]);
   const [loadingRestaurants, setLoadingRestaurants] = useState(false);
+  const [cuisineFilter, setCuisineFilter] = useState("All");
 
   useEffect(() => {
     if (!destination) return;
@@ -19,6 +20,7 @@ const DestinationModal = ({ destination, onClose }) => {
       .finally(() => setLoadingPrice(false));
 
     setRestaurants([]);
+    setCuisineFilter("All");
     setLoadingRestaurants(true);
 
     fetchRestaurants(destination.city || destination.name, destination.country)
@@ -126,17 +128,51 @@ const DestinationModal = ({ destination, onClose }) => {
             )}
 
             {!loadingRestaurants && restaurants.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {restaurants.map((r, i) => (
-                  <div key={i} className="bg-gray-50 rounded-lg p-3">
-                    <p className="font-semibold">{r.name}</p>
-                    <p className="text-xs text-gray-500">{r.cuisine}</p>
-                    {r.address && (
-                      <p className="text-xs text-gray-400 mt-1">{r.address}</p>
-                    )}
-                  </div>
-                ))}
-              </div>
+              <>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {["All", ...new Set(restaurants.map((r) => r.cuisine))].map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => setCuisineFilter(c)}
+                      className={`text-xs px-3 py-1 rounded-full border ${
+                        cuisineFilter === c
+                          ? "bg-blue-600 text-white border-blue-600"
+                          : "bg-white text-gray-600 border-gray-300"
+                      }`}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {restaurants
+                    .filter((r) => cuisineFilter === "All" || r.cuisine === cuisineFilter)
+                    .map((r, i) => (
+                      <div key={i} className="bg-gray-50 rounded-lg p-3">
+                        <p className="font-semibold">{r.name}</p>
+                        <p className="text-xs text-gray-500">{r.cuisine}</p>
+                        {r.address && (
+                          <p className="text-xs text-gray-400 mt-1">{r.address}</p>
+                        )}
+                        {r.openingHours && (
+                          <p className="text-xs text-gray-400 mt-1">🕒 {r.openingHours}</p>
+                        )}
+                        {r.latitude && r.longitude && (
+                          <a
+                            href={`https://www.google.com/maps?q=${r.latitude},${r.longitude}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-blue-600 hover:underline mt-1 inline-block"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            View on Map →
+                          </a>
+                        )}
+                      </div>
+                    ))}
+                </div>
+              </>
             )}
           </div>
 

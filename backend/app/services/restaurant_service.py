@@ -96,6 +96,7 @@ def _fetch_restaurants(city, country):
                         "name": p.get("name", "Unknown"),
                         "cuisine": cuisine,
                         "address": p.get("formatted") or p.get("address_line2") or "",
+                        "openingHours": p.get("opening_hours"),
                         "latitude": p.get("lat"),
                         "longitude": p.get("lon"),
                     }
