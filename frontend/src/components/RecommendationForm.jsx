@@ -169,15 +169,15 @@ const bestMatchScore =
     await fetchDynamicDestinations(country);
     console.log("Dynamic Places:", dynamicPlaces);
 
-  // combine both
+  // combine both, then surface the most notable places first --
+  // Geoapify's country-wide sight search has no fame/popularity signal,
+  // so without this, well-known curated destinations (e.g. Agra/Taj
+  // Mahal, rating 4.9) can get buried among arbitrary dynamic results
+  // that all share the same flat rating.
   const combined = [
     ...filtered,
     ...dynamicPlaces
-  ];
-  console.log("Combined:", combined);
-  console.log("STATIC:", filtered);
-  console.log("DYNAMIC:", dynamicPlaces);
-  console.log("COMBINED:", combined);
+  ].sort((a, b) => (b.rating || 0) - (a.rating || 0));
 
   setResults(combined);
 
@@ -738,9 +738,9 @@ const convertCost = (cost) => {
              <p className="font-semibold mt-2">
                 Avg Cost:
                 {" "}
-                {convertCost(
-                    place.averageCost
-                    )}
+                {place.averageCost
+                  ? convertCost(place.averageCost)
+                  : "View live price →"}
             </p>
 
               <p className="text-green-600 font-bold mt-2">

@@ -91,10 +91,14 @@ def _fetch_places(country):
                 p = item["properties"]
 
                 place_name = p.get("name", "Unknown")
+                place_city = p.get("city") or country
 
-                image_url = get_place_image(
-                    f"{place_name} tourist attraction {country}"
-                )
+                # Searching by the place's own city (not the whole
+                # country) gives Pexels a much more specific match --
+                # searching "X, India" for every place in the country
+                # tends to return the same generic/iconic photos repeated
+                # across unrelated destinations.
+                image_url = get_place_image(f"{place_name}, {place_city}")
 
                 destination = {
 
@@ -125,7 +129,11 @@ def _fetch_places(country):
 
                     "popularity": 90,
 
-                    "averageCost": 1000,
+                    # No fabricated flat cost here -- the real live price
+                    # (Xotelo-powered) is fetched on demand in the modal.
+                    # A single hardcoded number was actively misleading:
+                    # identical on every dynamic card regardless of place.
+                    "averageCost": None,
 
                     "interests": [
                         "Culture",
