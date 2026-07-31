@@ -4,19 +4,46 @@ import TopDestinations from "../components/TopDestinations";
 import SourceCountriesChart from "../components/SourceCountriesChart";
 import TravelPurposeChart from "../components/TravelPurposeChart";
 import { fetchPlatformStats } from "../services/platformAnalyticsService";
+import { retryFetch } from "../utils/retry";
 
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
 
-  useEffect(() => {
-    fetchPlatformStats().then((data) => {
+  const load = () => {
+    setLoading(true);
+    setFailed(false);
+
+    retryFetch(fetchPlatformStats).then((data) => {
       setStats(data);
+      setFailed(!data);
       setLoading(false);
     });
+  };
+
+  useEffect(() => {
+    load();
   }, []);
 
   const totals = stats?.totals || {};
+
+  if (failed) {
+    return (
+      <div className="flex-1 p-12">
+        <p className="text-gray-500 mb-4">
+          Couldn't reach the server. It may still be waking up from being
+          idle — this can take up to a minute on the free hosting tier.
+        </p>
+        <button
+          onClick={load}
+          className="bg-black text-white px-4 py-2 rounded-lg text-sm"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex bg-gray-50 min-h-screen">

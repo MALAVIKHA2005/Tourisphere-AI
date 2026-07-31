@@ -20,6 +20,7 @@ import { fetchWeather } from "../services/weatherService";
 import {
   fetchDestinations,
 } from "../services/destinationService";
+import { retryFetch } from "../utils/retry";
 import DestinationModal from "./DestinationModal";
 import AnalyticsCharts from "./AnalyticsCharts";
 
@@ -39,6 +40,8 @@ const RecommendationForm = () => {
   const [results, setResults] = useState([]);
   const [travelHistory, setTravelHistory] = useState([]);
   const [destinationsData,setDestinationsData,] = useState([]);
+  const [destinationsLoading, setDestinationsLoading] = useState(true);
+  const [destinationsFailed, setDestinationsFailed] = useState(false);
 
   const [selectedDestination, setSelectedDestination] =
     useState(null);
@@ -220,22 +223,27 @@ useEffect(() => {
 
   loadFavorites();
 }, []);
+const loadDestinations = async () => {
+
+  setDestinationsLoading(true);
+  setDestinationsFailed(false);
+
+  const data = await retryFetch(fetchDestinations, {
+    isValid: (result) => Array.isArray(result) && result.length > 0,
+  });
+
+  setDestinationsData(data || []);
+  setDestinationsFailed(!data || data.length === 0);
+
+  // initially show all cards
+  setResults([]);
+
+  setDestinationsLoading(false);
+
+};
+
 useEffect(() => {
-  const loadDestinations = async () => {
-
-    const data = await fetchDestinations();
-
-    console.log(data);
-
-    setDestinationsData(data);
-
-    // initially show all cards
-    setResults([]);
-
-  };
-
   loadDestinations();
-
 }, []);
 
 const convertCost = (cost) => {
@@ -273,9 +281,20 @@ const convertCost = (cost) => {
             setSearchTerm(e.target.value)
           }
         />
-        <h2 className="text-xl font-bold">
-            Available Destinations:
-            {destinationsData.length}
+        <h2 className="text-xl font-bold flex items-center gap-3">
+            {destinationsLoading
+              ? "Loading destinations... (first request may take up to a minute while the server wakes up)"
+              : destinationsFailed
+                ? "Couldn't reach the server."
+                : `Available Destinations: ${destinationsData.length}`}
+            {destinationsFailed && !destinationsLoading && (
+              <button
+                onClick={loadDestinations}
+                className="text-sm bg-black text-white px-3 py-1 rounded-lg font-normal"
+              >
+                Retry
+              </button>
+            )}
             </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
