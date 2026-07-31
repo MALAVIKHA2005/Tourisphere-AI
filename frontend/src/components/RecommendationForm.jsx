@@ -28,7 +28,6 @@ import AnalyticsCharts from "./AnalyticsCharts";
 const RecommendationForm = () => {
   const [searchTerm, setSearchTerm] = useState("");
 
-  const [country, setCountry] = useState("");
   const [countryQuery, setCountryQuery] = useState("");
   const [countrySuggestions, setCountrySuggestions] = useState([]);
   const [showCountrySuggestions, setShowCountrySuggestions] = useState(false);
@@ -62,7 +61,7 @@ const RecommendationForm = () => {
     ...new Set(
       destinationsData
         .filter(
-          (d) => !country || d.country === country
+          (d) => !countryQuery.trim() || d.country === countryQuery.trim()
         )
         .map((d) => d.state)
     ),
@@ -102,14 +101,16 @@ const bestMatchScore =
     }
   };
  const handleGenerateRecommendations = async () => {
+  const country = countryQuery.trim();
+
   if (!country) {
-    alert("Please select a country");
+    alert("Please type a country");
     return;
   }
 
   // filter static dataset
   let filtered = destinationsData.filter(
-    (d) => d.country === country
+    (d) => d.country.toLowerCase() === country.toLowerCase()
   );
 
   if (state)
@@ -235,7 +236,6 @@ useEffect(() => {
 }, [countryQuery]);
 
 const handleSelectCountry = (name) => {
-  setCountry(name);
   setCountryQuery(name);
   setShowCountrySuggestions(false);
   setCountrySuggestions([]);
@@ -327,7 +327,6 @@ const convertCost = (cost) => {
               value={countryQuery}
               onChange={(e) => {
                 setCountryQuery(e.target.value);
-                setCountry("");
                 setShowCountrySuggestions(true);
               }}
               onFocus={() => setShowCountrySuggestions(true)}
