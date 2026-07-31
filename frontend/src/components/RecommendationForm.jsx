@@ -101,12 +101,27 @@ const bestMatchScore =
     }
   };
  const handleGenerateRecommendations = async () => {
-  const country = countryQuery.trim();
+  const typed = countryQuery.trim();
 
-  if (!country) {
+  if (!typed) {
     alert("Please type a country");
     return;
   }
+
+  // Validate against real countries -- a raw typed string (e.g. a region,
+  // territory, or misspelling) can otherwise get passed straight to the
+  // geocoder and silently resolve to the wrong place entirely.
+  const matches = await searchCountries(typed);
+  const country = matches[0]?.name;
+
+  if (!country) {
+    alert(
+      `"${typed}" doesn't look like a real country. Please check the spelling or pick a suggestion from the list.`
+    );
+    return;
+  }
+
+  setCountryQuery(country);
 
   // filter static dataset
   let filtered = destinationsData.filter(
@@ -304,7 +319,7 @@ const convertCost = (cost) => {
               ? "Loading destinations... (first request may take up to a minute while the server wakes up)"
               : destinationsFailed
                 ? "Couldn't reach the server."
-                : `Available Destinations: ${destinationsData.length}`}
+                : `Curated Catalogue: ${destinationsData.length} destinations (plus live results for any country you search)`}
             {destinationsFailed && !destinationsLoading && (
               <button
                 onClick={loadDestinations}
