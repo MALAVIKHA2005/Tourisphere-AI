@@ -24,3 +24,5 @@ Thumbs.db
 .claude/
 frontend/.claude/
 frontend/view analytics.txt
+
+.vercel
