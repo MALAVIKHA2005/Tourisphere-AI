@@ -71,7 +71,7 @@ def _fetch_places(country):
             "https://api.geoapify.com/v2/places"
             "?categories=tourism.sights"
             f"&filter=place:{place_id}"
-            "&limit=15"
+            "&limit=40"
             f"&apiKey={API_KEY}"
         )
 
