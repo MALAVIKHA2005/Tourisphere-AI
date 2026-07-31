@@ -114,6 +114,13 @@ def get_average_hotel_price(city, country):
     if RAPIDAPI_KEY and city:
         hotels = _search_hotels(city, country)
 
+        # Narrow landmark/attraction names (e.g. a specific memorial or
+        # viewpoint) often don't match hotel-search indexes -- broaden to
+        # the country so we still return a real (if less precise) price
+        # instead of giving up entirely.
+        if not hotels and country and country.lower() != city.lower():
+            hotels = _search_hotels(country, country)
+
         if hotels:
             check_in = (datetime.now(timezone.utc) + timedelta(days=30)).strftime("%Y-%m-%d")
             check_out = (datetime.now(timezone.utc) + timedelta(days=31)).strftime("%Y-%m-%d")
