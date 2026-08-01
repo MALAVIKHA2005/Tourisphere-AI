@@ -124,6 +124,21 @@ const DestinationModal = ({ destination, onClose }) => {
     return "No data";
   };
 
+  // Derived from the real live hotel price -- not the flat "Medium" every
+  // dynamic destination used to carry (same fabricated-data issue rating
+  // had). Thresholds are USD/night, matching Xotelo's currency.
+  const budgetLabel = () => {
+    if (loadingPrice) return "Checking...";
+
+    if (!hotelPrice?.available) return null;
+
+    const price = hotelPrice.average_price;
+
+    if (price < 40) return "Low";
+    if (price <= 100) return "Medium";
+    return "High";
+  };
+
   const stat = (label, value) => (
     <div className="bg-gray-50 rounded-xl p-3 hover:bg-gray-100 transition-colors">
       <p className="text-xs uppercase tracking-wide text-gray-400">{label}</p>
@@ -170,7 +185,7 @@ const DestinationModal = ({ destination, onClose }) => {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
             {stat("Country", destination.country)}
             {stat("State / City", destination.state || destination.city)}
-            {stat("Budget", destination.budget)}
+            {stat("Budget", budgetLabel())}
             {stat("Climate", destination.climate)}
             {stat("Popularity", destination.popularity)}
             {stat("Safety Score", destination.safetyScore)}
