@@ -6,6 +6,7 @@ import {
 import {
   fetchFavorites,
   addFavorite,
+  removeFavorite,
 } from "../services/favoritesService";
 import { logSearch } from "../services/searchHistoryService";
 import { getDestinationKey } from "../utils/destinationKey";
@@ -64,14 +65,30 @@ const RecommendationForm = () => {
         .filter(Boolean)
     ),
   ];
-  const addToFavorites = async (destination) => {
+  const isFavorited = (destination) => {
     const key = getDestinationKey(destination);
 
-    const exists = favorites.find(
+    return favorites.some(
       (item) => getDestinationKey(item.destination || item) === key
     );
+  };
 
-    if (exists) return;
+  const toggleFavorite = async (destination) => {
+    const key = getDestinationKey(destination);
+
+    if (isFavorited(destination)) {
+      const removed = await removeFavorite(destination);
+
+      if (removed) {
+        setFavorites(
+          favorites.filter(
+            (item) => getDestinationKey(item.destination || item) !== key
+          )
+        );
+      }
+
+      return;
+    }
 
     const added = await addFavorite(destination);
 
@@ -688,11 +705,15 @@ useEffect(() => {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  addToFavorites(place);
+                  toggleFavorite(place);
                 }}
-                className="mt-auto bg-gradient-to-r from-red-500 to-pink-500 text-white px-4 py-2 rounded-full self-start shadow-sm hover:shadow-md hover:scale-105 active:scale-95 transition-all duration-200"
+                className={`mt-auto px-4 py-2 rounded-full self-start shadow-sm hover:shadow-md hover:scale-105 active:scale-95 transition-all duration-200 ${
+                  isFavorited(place)
+                    ? "bg-gray-100 text-gray-700 border border-gray-300"
+                    : "bg-gradient-to-r from-red-500 to-pink-500 text-white"
+                }`}
               >
-                ❤️ Add to Favorites
+                {isFavorited(place) ? "💔 Remove from Favorites" : "❤️ Add to Favorites"}
               </button>
 
             </div>
