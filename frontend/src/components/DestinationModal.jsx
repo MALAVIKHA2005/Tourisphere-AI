@@ -4,8 +4,16 @@ import { fetchRestaurants } from "../services/restaurantService";
 import { fetchHotels } from "../services/hotelService";
 import { fetchExchangeRates } from "../services/currencyService";
 import { fetchRoute } from "../services/routeService";
+import { fetchLifestyle } from "../services/lifestyleService";
 
 const CURRENCY_SYMBOLS = { INR: "₹", USD: "$", EUR: "€", GBP: "£", JPY: "¥" };
+
+const LIFESTYLE_TABS = [
+  { key: "shopping", label: "🛍️ Shopping" },
+  { key: "nightlife", label: "🍸 Nightlife" },
+  { key: "entertainment", label: "🎬 Entertainment" },
+  { key: "culture", label: "🖼️ Culture" },
+];
 
 const formatDuration = (minutes) => {
   const h = Math.floor(minutes / 60);
@@ -29,6 +37,9 @@ const DestinationModal = ({ destination, onClose }) => {
   const [routeMode, setRouteMode] = useState("drive");
   const [route, setRoute] = useState(null);
   const [loadingRoute, setLoadingRoute] = useState(false);
+  const [lifestyle, setLifestyle] = useState(null);
+  const [loadingLifestyle, setLoadingLifestyle] = useState(false);
+  const [lifestyleTab, setLifestyleTab] = useState("shopping");
 
   useEffect(() => {
     fetchExchangeRates().then(setExchangeRates);
@@ -75,6 +86,14 @@ const DestinationModal = ({ destination, onClose }) => {
     setFromPlace("");
     setRoute(null);
     setRouteMode("drive");
+
+    setLifestyle(null);
+    setLifestyleTab("shopping");
+    setLoadingLifestyle(true);
+
+    fetchLifestyle(destination.city || destination.name, destination.country)
+      .then(setLifestyle)
+      .finally(() => setLoadingLifestyle(false));
   }, [destination]);
 
   if (!destination) return null;
@@ -307,6 +326,61 @@ const DestinationModal = ({ destination, onClose }) => {
                   <p className="text-xs uppercase tracking-wide text-gray-400">Est. Cost</p>
                   <p className="font-semibold">{convertPrice(route.estimated_cost_usd)}</p>
                 </div>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-6">
+            <h3 className="text-lg font-bold mb-3">🎭 Lifestyle</h3>
+
+            <div className="flex flex-wrap gap-2 mb-3">
+              {LIFESTYLE_TABS.map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setLifestyleTab(tab.key)}
+                  className={`text-xs px-3 py-1 rounded-full border transition-all ${
+                    lifestyleTab === tab.key
+                      ? "bg-gradient-to-r from-orange-500 to-pink-500 text-white border-transparent shadow-sm"
+                      : "bg-white text-gray-600 border-gray-300 hover:border-orange-300"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {loadingLifestyle && (
+              <p className="text-sm text-gray-500">Finding places nearby...</p>
+            )}
+
+            {!loadingLifestyle && lifestyle?.[lifestyleTab]?.length === 0 && (
+              <p className="text-sm text-gray-500">No data available for this area.</p>
+            )}
+
+            {!loadingLifestyle && lifestyle?.[lifestyleTab]?.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {lifestyle[lifestyleTab].map((place, i) => (
+                  <div
+                    key={i}
+                    className="bg-gray-50 rounded-xl p-3 hover:shadow-md transition-shadow"
+                  >
+                    <p className="font-semibold">{place.name}</p>
+                    {place.address && (
+                      <p className="text-xs text-gray-400 mt-1">{place.address}</p>
+                    )}
+                    {place.latitude && place.longitude && (
+                      <a
+                        href={`https://www.google.com/maps?q=${place.latitude},${place.longitude}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-orange-600 hover:text-orange-700 hover:underline mt-1 inline-block font-medium"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        View on Map →
+                      </a>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
           </div>

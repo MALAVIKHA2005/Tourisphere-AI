@@ -19,6 +19,7 @@ from app.routes.countries import router as countries_router
 from app.routes.restaurants import router as restaurants_router
 from app.routes.dishes import router as dishes_router
 from app.routes.transport import router as transport_router
+from app.routes.lifestyle import router as lifestyle_router
 from app.routes.destinations import (
     router as destinations_router
 )
@@ -65,6 +66,7 @@ app.include_router(countries_router)
 app.include_router(restaurants_router)
 app.include_router(dishes_router)
 app.include_router(transport_router)
+app.include_router(lifestyle_router)
 @app.get("/")
 def root():
     return {
