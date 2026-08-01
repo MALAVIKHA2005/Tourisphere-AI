@@ -30,6 +30,7 @@ Live hotel pricing is powered by [Xotelo](https://xotelo.com/) via RapidAPI (Ama
 - Production hardening (secrets, caching, CORS/cookie config, privacy controls)
 - Nearby Restaurant Recommendations (Geoapify-powered, per destination)
 - Hotel Search with real live pricing per provider (Xotelo-powered, per destination)
+- Popular Dishes per country (curated reference data) on destination cards
 
 ---
 

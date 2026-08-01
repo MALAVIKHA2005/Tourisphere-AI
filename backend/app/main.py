@@ -17,6 +17,7 @@ from app.routes.weather import router as weather_router
 from app.routes.currency import router as currency_router
 from app.routes.countries import router as countries_router
 from app.routes.restaurants import router as restaurants_router
+from app.routes.dishes import router as dishes_router
 from app.routes.destinations import (
     router as destinations_router
 )
@@ -61,6 +62,7 @@ app.include_router(weather_router)
 app.include_router(currency_router)
 app.include_router(countries_router)
 app.include_router(restaurants_router)
+app.include_router(dishes_router)
 @app.get("/")
 def root():
     return {
