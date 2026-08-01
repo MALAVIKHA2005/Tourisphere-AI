@@ -342,7 +342,7 @@ const DestinationModal = ({ destination, onClose }) => {
 
             {!loadingRoute && route && !route.available && (
               <p className="text-sm text-gray-500">
-                Couldn't find a road route between those two places.
+                {route.reason || "Couldn't find a road route between those two places."}
               </p>
             )}
 

@@ -103,6 +103,23 @@ def get_route(from_value, to_value, mode="drive"):
                         "estimated_cost_usd": round(distance_km * COST_PER_KM_USD, 2),
                     }
 
+                else:
+                    # Walk (and to a lesser extent bicycle) routing has a
+                    # real distance ceiling on Geoapify's API -- surfacing
+                    # *why* it failed instead of a generic "no route" is
+                    # the difference between this looking broken and
+                    # looking correct (e.g. walking from Ooty to Goa,
+                    # ~500km apart, SHOULD fail).
+                    error_message = (data.get("message") or "").lower()
+
+                    if "exceed" in error_message or "too long" in error_message:
+                        if mode == "drive":
+                            reason = "That's too far apart for a direct road route."
+                        else:
+                            reason = f"That's too far to {mode} directly -- try Drive instead."
+
+                        result = {"available": False, "reason": reason}
+
             except Exception as e:
                 print("Transport Route Error:", e)
 
