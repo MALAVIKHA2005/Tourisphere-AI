@@ -558,7 +558,7 @@ useEffect(() => {
           <p className="text-gray-400 text-sm">{item.state}</p>
 
           <p className="text-yellow-600 mt-1">
-            ⭐ {item.rating}
+            {item.rating ? `📋 Curator Score: ${item.rating}/5` : "📋 No curator score"}
           </p>
 
           <p className="text-sm text-gray-400">
@@ -591,11 +591,11 @@ useEffect(() => {
 
   <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 border-t-4 border-t-yellow-400 hover:shadow-md transition-shadow">
     <h3 className="text-gray-500 text-sm">
-      Average Rating
+      Avg Curator Score
     </h3>
 
     <p className="text-3xl font-bold mt-1">
-      ⭐ {averageRating}
+      📋 {averageRating}
     </p>
   </div>
 
@@ -674,7 +674,9 @@ useEffect(() => {
               </p>
 
               <p className="mt-2">
-                {place.rating ? `⭐ ${place.rating}` : "⭐ No rating data"}
+                {place.rating
+                  ? `📋 Curator Score: ${place.rating}/5`
+                  : "📋 No curator score"}
               </p>
               <p className="text-blue-600 mt-2">
                 🌡️{" "}
