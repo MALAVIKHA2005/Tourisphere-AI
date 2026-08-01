@@ -2,6 +2,9 @@ import React, { useEffect, useState } from "react";
 import { fetchHotelPrice } from "../services/hotelPriceService";
 import { fetchRestaurants } from "../services/restaurantService";
 import { fetchHotels } from "../services/hotelService";
+import { fetchExchangeRates } from "../services/currencyService";
+
+const CURRENCY_SYMBOLS = { INR: "₹", USD: "$", EUR: "€", GBP: "£", JPY: "¥" };
 
 const DestinationModal = ({ destination, onClose }) => {
   const [hotelPrice, setHotelPrice] = useState(null);
@@ -11,6 +14,25 @@ const DestinationModal = ({ destination, onClose }) => {
   const [cuisineFilter, setCuisineFilter] = useState("All");
   const [hotels, setHotels] = useState([]);
   const [loadingHotels, setLoadingHotels] = useState(false);
+  const [currency, setCurrency] = useState("USD");
+  const [exchangeRates, setExchangeRates] = useState({ USD: 1 });
+
+  useEffect(() => {
+    fetchExchangeRates().then(setExchangeRates);
+  }, []);
+
+  // Live hotel prices come from Xotelo in USD -- rates from /currency-rates
+  // are INR-based (INR: 1, others are INR->target multipliers), so convert
+  // through INR to get a USD->target rate.
+  const convertPrice = (usdAmount) => {
+    const rate = exchangeRates[currency];
+    const usdRate = exchangeRates.USD;
+
+    if (!rate || !usdRate) return `$${usdAmount}`;
+
+    const converted = usdAmount * (rate / usdRate);
+    return `${CURRENCY_SYMBOLS[currency] || ""}${converted.toFixed(2)}`;
+  };
 
   useEffect(() => {
     if (!destination) return;
@@ -44,12 +66,10 @@ const DestinationModal = ({ destination, onClose }) => {
     if (loadingPrice) return "Checking live prices...";
 
     if (hotelPrice?.available) {
-      return `$${hotelPrice.average_price} / night (live, ${hotelPrice.sample_size} hotels)`;
+      return `${convertPrice(hotelPrice.average_price)} / night (live, ${hotelPrice.sample_size} hotels)`;
     }
 
-    return destination.averageCost
-      ? `₹${destination.averageCost} (estimated)`
-      : "No data";
+    return "No data";
   };
 
   const stat = (label, value) => (
@@ -127,7 +147,21 @@ const DestinationModal = ({ destination, onClose }) => {
           </div>
 
           <div className="mt-6">
-            <h3 className="text-lg font-bold mb-3">🏨 Hotels Nearby</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-bold">🏨 Hotels Nearby</h3>
+
+              <select
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value)}
+                className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-orange-400"
+              >
+                <option value="USD">$ USD</option>
+                <option value="INR">₹ INR</option>
+                <option value="EUR">€ EUR</option>
+                <option value="GBP">£ GBP</option>
+                <option value="JPY">¥ JPY</option>
+              </select>
+            </div>
 
             {loadingHotels && (
               <p className="text-sm text-gray-500">Checking live hotel prices...</p>
@@ -158,7 +192,7 @@ const DestinationModal = ({ destination, onClose }) => {
                       )}
                       {h.rates?.length > 0 ? (
                         <p className="text-sm text-green-700 font-semibold mt-1">
-                          From ${h.rates[0].price} / night ({h.rates[0].provider})
+                          From {convertPrice(h.rates[0].price)} / night ({h.rates[0].provider})
                         </p>
                       ) : (
                         <p className="text-xs text-gray-400 mt-1">No live rates found</p>

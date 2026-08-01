@@ -145,7 +145,12 @@ def _fetch_places(country):
 
                     "climate": "Clear",
 
-                    "rating": 4.5,
+                    # Geoapify's places API has no real rating/review data
+                    # for tourism.sights -- a hardcoded number here would be
+                    # identical on every single dynamic card (misleading,
+                    # not just imprecise), so we show no rating instead of
+                    # faking one.
+                    "rating": None,
 
                     "budget": "Medium",
 

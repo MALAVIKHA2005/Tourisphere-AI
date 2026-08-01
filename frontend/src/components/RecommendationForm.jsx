@@ -9,9 +9,6 @@ import {
 } from "../services/favoritesService";
 import { logSearch } from "../services/searchHistoryService";
 import { getDestinationKey } from "../utils/destinationKey";
-import {
-  fetchExchangeRates,
-} from "../services/currencyService";
 import React, {
   useState,
   useEffect,
@@ -37,8 +34,6 @@ const RecommendationForm = () => {
   const [month, setMonth] = useState("");
   const [climate, setClimate] = useState("");
 
-  const [currency, setCurrency] = useState("INR");
-
   const [results, setResults] = useState([]);
   const [travelHistory, setTravelHistory] = useState([]);
   const [destinationsData,setDestinationsData,] = useState([]);
@@ -50,10 +45,6 @@ const RecommendationForm = () => {
   const [weatherData, setWeatherData] =
   useState({});
 
-  const [exchangeRates, setExchangeRates] =
-  useState({
-    INR: 1,
-  });
   const [favorites, setFavorites] = useState([]);
   const [countryDishes, setCountryDishes] = useState([]);
 
@@ -164,16 +155,6 @@ const RecommendationForm = () => {
   }
 }, [results]);
 useEffect(() => {
-  const loadRates = async () => {
-    const rates =
-      await fetchExchangeRates();
-
-    setExchangeRates(rates);
-  };
-
-  loadRates();
-}, []);
-useEffect(() => {
   const loadTravelHistory = async () => {
     const history = await fetchTravelHistory(10);
     console.log("Travel History:", history);
@@ -236,32 +217,14 @@ useEffect(() => {
   loadDestinations();
 }, []);
 
-const convertCost = (cost) => {
-  if (currency === "INR") {
-    return `₹${cost}`;
-  }
-
-  const converted =
-    cost * exchangeRates[currency];
-
-  const symbols = {
-    USD: "$",
-    EUR: "€",
-    GBP: "£",
-    JPY: "¥",
-  };
-
-  return `${symbols[currency]}${converted.toFixed(
-    2
-  )}`;
-};
-
   // Match Score: a genuine percentage of the SELECTED soft criteria
   // (budget/interest/travelType/month/climate) this place satisfies --
   // not a fabricated number. State is a hard filter below (it's a real
   // geographic constraint, not a preference to rank by). With no soft
-  // criteria selected, score falls back to rating so it's still a
-  // meaningful, non-blank number.
+  // criteria selected, score falls back to rating -- but only curated
+  // catalogue entries have a real (hand-researched) rating; live-fetched
+  // places have none (Geoapify doesn't provide one), so those get `null`
+  // rather than a fabricated score.
   const computeMatchScore = (place) => {
     const softCriteria = [
       [budget, place.budget === budget],
@@ -272,7 +235,7 @@ const convertCost = (cost) => {
     ].filter(([selected]) => Boolean(selected));
 
     if (softCriteria.length === 0) {
-      return Math.round(((place.rating || 0) / 5) * 100);
+      return place.rating ? Math.round((place.rating / 5) * 100) : null;
     }
 
     const matched = softCriteria.filter(([, isMatch]) => isMatch).length;
@@ -283,19 +246,22 @@ const convertCost = (cost) => {
     .filter((place) => !state || place.state === state)
     .map((place) => ({ ...place, matchScore: computeMatchScore(place) }))
     .sort(
-      (a, b) => b.matchScore - a.matchScore || (b.rating || 0) - (a.rating || 0)
+      (a, b) =>
+        (b.matchScore ?? -1) - (a.matchScore ?? -1) ||
+        (b.rating || 0) - (a.rating || 0)
     );
 
+  const ratedResults = displayedResults.filter((place) => place.rating);
   const averageRating =
-    displayedResults.length > 0
+    ratedResults.length > 0
       ? (
-          displayedResults.reduce((sum, place) => sum + (place.rating || 0), 0) /
-          displayedResults.length
+          ratedResults.reduce((sum, place) => sum + place.rating, 0) /
+          ratedResults.length
         ).toFixed(1)
-      : 0;
+      : "N/A";
 
   const bestMatchScore =
-    displayedResults.length > 0 ? displayedResults[0].matchScore : 0;
+    displayedResults.length > 0 ? displayedResults[0].matchScore : null;
 
   const fieldClass =
     "border border-gray-200 p-3 rounded-xl w-full bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all";
@@ -542,34 +508,6 @@ const convertCost = (cost) => {
             </option>
           </select>
 
-          {/* Currency */}
-
-          <select
-            className={fieldClass}
-            value={currency}
-            onChange={(e) =>
-              setCurrency(e.target.value)
-            }
-          >
-            <option value="INR">
-              ₹ INR
-            </option>
-
-            <option value="USD">
-              $ USD
-            </option>
-
-            <option value="EUR">
-              € EUR
-            </option>
-            <option value="GBP">
-                £ GBP
-                </option>
-                <option value="JPY">
-                    ¥ JPY
-            </option>
-          </select>
-
         </div>
 
         <button
@@ -660,7 +598,7 @@ const convertCost = (cost) => {
     </h3>
 
     <p className="text-3xl font-bold text-green-600 mt-1">
-      {bestMatchScore}%
+      {bestMatchScore !== null ? `${bestMatchScore}%` : "N/A"}
     </p>
   </div>
 
@@ -704,7 +642,7 @@ const convertCost = (cost) => {
 
             <div className="p-4 flex flex-col flex-1">
 
-              {index === 0 && (
+              {index === 0 && place.matchScore !== null && (
                 <div className="bg-gradient-to-r from-green-400 to-emerald-500 text-white px-3 py-1 rounded-full text-sm font-bold inline-block mb-2 self-start shadow-sm">
                   🏆 Best Match
                 </div>
@@ -719,7 +657,7 @@ const convertCost = (cost) => {
               </p>
 
               <p className="mt-2">
-                ⭐ {place.rating}
+                {place.rating ? `⭐ ${place.rating}` : "⭐ No rating data"}
               </p>
               <p className="text-blue-600 mt-2">
                 🌡️{" "}
@@ -740,15 +678,11 @@ const convertCost = (cost) => {
               </p>
 
              <p className="font-semibold mt-2">
-                Avg Cost:
-                {" "}
-                {place.averageCost
-                  ? convertCost(place.averageCost)
-                  : "View live price →"}
+                Avg Cost: View live price →
             </p>
 
               <p className="text-green-600 font-bold mt-2">
-                 Match Score: {place.matchScore}%
+                 Match Score: {place.matchScore !== null ? `${place.matchScore}%` : "N/A"}
                  </p>
 
               <button
