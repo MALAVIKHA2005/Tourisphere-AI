@@ -237,11 +237,11 @@ useEffect(() => {
   // Match Score: a genuine percentage of the SELECTED soft criteria
   // (budget/interest/travelType/month/climate) this place satisfies --
   // not a fabricated number. State is a hard filter below (it's a real
-  // geographic constraint, not a preference to rank by). With no soft
-  // criteria selected, score falls back to rating -- but only curated
-  // catalogue entries have a real (hand-researched) rating; live-fetched
-  // places have none (Geoapify doesn't provide one), so those get `null`
-  // rather than a fabricated score.
+  // geographic constraint, not a preference to rank by). With NO soft
+  // criteria selected, there is nothing to "match" against, so this
+  // returns null rather than quietly reusing rating as a stand-in --
+  // rating is already shown separately, and rescaling it to a percentage
+  // and calling it "Match Score" implied it meant something it didn't.
   const computeMatchScore = (place) => {
     const softCriteria = [
       [budget, place.budget === budget],
@@ -252,7 +252,7 @@ useEffect(() => {
     ].filter(([selected]) => Boolean(selected));
 
     if (softCriteria.length === 0) {
-      return place.rating ? Math.round((place.rating / 5) * 100) : null;
+      return null;
     }
 
     const matched = softCriteria.filter(([, isMatch]) => isMatch).length;
@@ -698,9 +698,11 @@ useEffect(() => {
                 Avg Cost: View live price →
             </p>
 
-              <p className="text-green-600 font-bold mt-2">
-                 Match Score: {place.matchScore !== null ? `${place.matchScore}%` : "N/A"}
-                 </p>
+              {place.matchScore !== null && (
+                <p className="text-green-600 font-bold mt-2">
+                  Match Score: {place.matchScore}%
+                </p>
+              )}
 
               <button
                 onClick={(e) => {
