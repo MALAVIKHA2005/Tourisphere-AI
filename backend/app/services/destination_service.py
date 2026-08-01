@@ -1,10 +1,12 @@
 import os
 import time
+from concurrent.futures import ThreadPoolExecutor
 
 import requests
 from dotenv import load_dotenv
 
 from app.services.image_service import get_place_image
+from app.services.popularity_service import get_popularity
 
 load_dotenv()
 
@@ -196,7 +198,10 @@ def _fetch_places(country, state=None, city=None):
                     # are all "Medium" cost.
                     "budget": None,
 
-                    "popularity": 90,
+                    # Real Wikipedia page-view count, attached in
+                    # parallel below -- not the flat 90 every dynamic
+                    # card used to carry (same issue rating/budget had).
+                    "popularity": None,
 
                     # No fabricated flat cost here -- the real live price
                     # (Xotelo-powered) is fetched on demand in the modal.
@@ -223,6 +228,16 @@ def _fetch_places(country, state=None, city=None):
                 }
 
                 places.append(destination)
+
+        # Fetch real Wikipedia popularity for every place in parallel --
+        # sequentially, up to 40 extra network round-trips per search
+        # would be far too slow.
+        if places:
+            def _attach_popularity(place):
+                place["popularity"] = get_popularity(place["name"], place["city"])
+
+            with ThreadPoolExecutor(max_workers=20) as pool:
+                pool.map(_attach_popularity, places)
 
         print(f"Dynamic Places Found: {len(places)}")
 

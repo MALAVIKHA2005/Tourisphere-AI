@@ -71,11 +71,14 @@ def _geocode_place_id(city, country):
 
 def _fetch_category(place_id, category):
     try:
+        # Over-fetch because some OSM points have no name tag at all --
+        # those get filtered out below, so asking for exactly
+        # SAMPLE_SIZE would leave the list short.
         url = (
             "https://api.geoapify.com/v2/places"
             f"?categories={category}"
             f"&filter=place:{place_id}"
-            f"&limit={SAMPLE_SIZE}"
+            f"&limit={SAMPLE_SIZE * 2}"
             f"&apiKey={API_KEY}"
         )
 
@@ -86,15 +89,25 @@ def _fetch_category(place_id, category):
 
         for item in data.get("features", []):
             p = item["properties"]
+            name = p.get("name")
+
+            # Some OSM points have no name tag at all -- real place, just
+            # not one we can show or identify, so skip it rather than
+            # display a literal "Unknown".
+            if not name:
+                continue
 
             places.append(
                 {
-                    "name": p.get("name", "Unknown"),
+                    "name": name,
                     "address": p.get("formatted") or p.get("address_line2") or "",
                     "latitude": p.get("lat"),
                     "longitude": p.get("lon"),
                 }
             )
+
+            if len(places) >= SAMPLE_SIZE:
+                break
 
         return places
 

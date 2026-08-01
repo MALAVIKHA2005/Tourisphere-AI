@@ -14,6 +14,7 @@ const LIFESTYLE_TABS = [
   { key: "nightlife", label: "🍸 Nightlife" },
   { key: "entertainment", label: "🎬 Entertainment" },
   { key: "culture", label: "🖼️ Culture" },
+  { key: "family", label: "👨‍👩‍👧 Family" },
 ];
 
 const EDUCATION_TABS = [
@@ -29,7 +30,6 @@ const formatDuration = (minutes) => {
   if (h === 0) return `${m}m`;
   return `${h}h ${m}m`;
 };
-
 const DestinationModal = ({ destination, onClose }) => {
   const [hotelPrice, setHotelPrice] = useState(null);
   const [loadingPrice, setLoadingPrice] = useState(false);
@@ -169,6 +169,30 @@ const DestinationModal = ({ destination, onClose }) => {
     return "High";
   };
 
+  // Real Wikipedia monthly page views -- not a fabricated 0-100 score.
+  // No honest per-city safety data source exists anywhere (see backend
+  // popularity_service.py), so Safety Score was dropped entirely rather
+  // than faked.
+  const popularityLabel = () => {
+    if (destination.popularity === null || destination.popularity === undefined) {
+      return "No data";
+    }
+
+    return `${destination.popularity.toLocaleString()} views/mo (Wikipedia)`;
+  };
+
+  // Real count of nearby parks/playgrounds/zoos/aquariums (from the same
+  // Lifestyle fetch below) -- replaces the fabricated 0-100 Family
+  // Score, which had no honest data source.
+  const familyLabel = () => {
+    if (loadingLifestyle) return "Checking...";
+
+    const count = lifestyle?.family?.length;
+
+    if (count === undefined) return "No data";
+    return count > 0 ? `${count} nearby` : "None found nearby";
+  };
+
   const stat = (label, value) => (
     <div className="bg-gray-50 rounded-xl p-3 hover:bg-gray-100 transition-colors">
       <p className="text-xs uppercase tracking-wide text-gray-400">{label}</p>
@@ -217,9 +241,8 @@ const DestinationModal = ({ destination, onClose }) => {
             {stat("State / City", destination.state || destination.city)}
             {stat("Budget", budgetLabel())}
             {stat("Climate", destination.climate)}
-            {stat("Popularity", destination.popularity)}
-            {stat("Safety Score", destination.safetyScore)}
-            {stat("Family Score", destination.familyScore)}
+            {stat("Popularity", popularityLabel())}
+            {stat("Family-Friendly Spots", familyLabel())}
             {stat("Average Hotel Cost", costLabel())}
           </div>
 

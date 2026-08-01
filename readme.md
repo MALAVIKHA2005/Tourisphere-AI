@@ -34,6 +34,7 @@ Live hotel pricing is powered by [Xotelo](https://xotelo.com/) via RapidAPI (Ama
 - Getting There: real road distance/time between any two places (Geoapify routing), per destination -- flights/trains/buses have no honest free data source, so this covers road trips only
 - Lifestyle: real Shopping, Nightlife, Entertainment & Culture spots nearby (Geoapify-powered, per destination)
 - Education: real Universities, Colleges & Schools nearby (Geoapify-powered, per destination) -- course catalogues and tuition costs skipped, no free source exists
+- Popularity: real Wikipedia monthly page views per destination (no honest free per-city Safety Score exists anywhere, so it was removed rather than faked; Family Score replaced with a real count of nearby parks/playgrounds/zoos)
 
 ---
 

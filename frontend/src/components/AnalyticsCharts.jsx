@@ -27,7 +27,7 @@ const AnalyticsCharts = ({ results }) => {
 
     datasets: [
       {
-        label: "Popularity Score",
+        label: "Wikipedia Views (30d)",
         data: results.map(
           (d) => d.popularity
         ),
