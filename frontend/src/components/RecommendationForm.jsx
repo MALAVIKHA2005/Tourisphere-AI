@@ -173,10 +173,17 @@ const RecommendationForm = () => {
     
      
   useEffect(() => {
+  // Weather must be fetched for whatever is actually being displayed --
+  // when a state is selected, that's stateResults, not the original
+  // country-wide `results`. This previously only watched `results`, so
+  // selecting a state left every card's weather stuck on "Loading..."
+  // forever, since results never changed and the effect never re-ran.
+  const activeResults = state ? stateResults || [] : results;
+
   const loadWeather = async () => {
     const weatherResults = {};
 
-    for (const destination of results) {
+    for (const destination of activeResults) {
       const weather =
         await fetchWeather(destination.city);
 
@@ -187,10 +194,10 @@ const RecommendationForm = () => {
     setWeatherData(weatherResults);
   };
 
-  if (results.length > 0) {
+  if (activeResults.length > 0) {
     loadWeather();
   }
-}, [results]);
+}, [state, stateResults, results]);
 useEffect(() => {
   const loadTravelHistory = async () => {
     const history = await fetchTravelHistory(10);
