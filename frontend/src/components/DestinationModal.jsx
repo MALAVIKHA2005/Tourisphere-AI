@@ -307,6 +307,7 @@ const DestinationModal = ({ destination, onClose }) => {
               >
                 <option value="drive">🚗 Drive</option>
                 <option value="bicycle">🚴 Bicycle</option>
+                <option value="walk">🚶 Walk</option>
               </select>
 
               <button
