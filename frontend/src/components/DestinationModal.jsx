@@ -120,7 +120,6 @@ const DestinationModal = ({ destination, onClose }) => {
             {stat("State / City", destination.state || destination.city)}
             {stat("Budget", destination.budget)}
             {stat("Climate", destination.climate)}
-            {stat("Curator Score", destination.rating ? `📋 ${destination.rating}/5` : null)}
             {stat("Popularity", destination.popularity)}
             {stat("Safety Score", destination.safetyScore)}
             {stat("Family Score", destination.familyScore)}

@@ -268,15 +268,6 @@ useEffect(() => {
         (b.rating || 0) - (a.rating || 0)
     );
 
-  const ratedResults = displayedResults.filter((place) => place.rating);
-  const averageRating =
-    ratedResults.length > 0
-      ? (
-          ratedResults.reduce((sum, place) => sum + place.rating, 0) /
-          ratedResults.length
-        ).toFixed(1)
-      : "N/A";
-
   const bestMatchScore =
     displayedResults.length > 0 ? displayedResults[0].matchScore : null;
 
@@ -557,11 +548,7 @@ useEffect(() => {
 
           <p className="text-gray-400 text-sm">{item.state}</p>
 
-          <p className="text-yellow-600 mt-1">
-            {item.rating ? `📋 Curator Score: ${item.rating}/5` : "📋 No curator score"}
-          </p>
-
-          <p className="text-sm text-gray-400">
+          <p className="text-sm text-gray-400 mt-1">
             {new Date(item.viewed_at).toLocaleString()}
           </p>
         </div>
@@ -577,7 +564,7 @@ useEffect(() => {
           ❤️ Favorites ({favorites.length})
         </h2>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
 
   <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 border-t-4 border-t-orange-400 hover:shadow-md transition-shadow">
     <h3 className="text-gray-500 text-sm">
@@ -586,16 +573,6 @@ useEffect(() => {
 
     <p className="text-3xl font-bold mt-1">
       {displayedResults.length}
-    </p>
-  </div>
-
-  <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 border-t-4 border-t-yellow-400 hover:shadow-md transition-shadow">
-    <h3 className="text-gray-500 text-sm">
-      Avg Curator Score
-    </h3>
-
-    <p className="text-3xl font-bold mt-1">
-      📋 {averageRating}
     </p>
   </div>
 
@@ -673,11 +650,6 @@ useEffect(() => {
                 {[place.state, place.country].filter(Boolean).join(", ")}
               </p>
 
-              <p className="mt-2">
-                {place.rating
-                  ? `📋 Curator Score: ${place.rating}/5`
-                  : "📋 No curator score"}
-              </p>
               <p className="text-blue-600 mt-2">
                 🌡️{" "}
                 {weatherData[place.name]?.temperature ??
