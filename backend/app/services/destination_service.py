@@ -13,6 +13,17 @@ API_KEY = os.getenv("GEOAPIFY_API_KEY")
 CACHE_TTL_SECONDS = 60 * 60  # dynamic places for a country don't change hour to hour
 _places_cache = {}
 
+# Geoapify's API doesn't support excluding subcategories server-side (a
+# "-category" filter 400s), so low-signal ones are dropped client-side
+# instead. wayside_cross specifically produces junk like a roadside
+# marker literally named "Physics" in OSM -- a real point, just not a
+# real "tourist sight." Kept narrow and conservative: broader exclusions
+# (e.g. the generic "memorial" category) would risk cutting real,
+# legitimate monuments too.
+LOW_SIGNAL_CATEGORIES = {
+    "tourism.sights.memorial.wayside_cross",
+}
+
 
 def get_places(country, state=None):
     cache_key = f"{(country or '').strip().lower()}|{(state or '').strip().lower()}"
@@ -104,6 +115,9 @@ def _fetch_places(country, state=None):
             for item in places_data["features"]:
 
                 p = item["properties"]
+
+                if LOW_SIGNAL_CATEGORIES.intersection(p.get("categories", [])):
+                    continue
 
                 place_name = p.get("name", "Unknown")
                 # Geoapify often omits "city" for landmarks in smaller or
