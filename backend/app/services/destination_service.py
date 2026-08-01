@@ -84,6 +84,13 @@ def _fetch_places(country):
 
         places = []
 
+        # Some real places share a generic name (e.g. two distinct
+        # "Geoglifo" sites in the same state) -- without this, both build
+        # the exact same Pexels query and land on the identical cached
+        # photo. Tracking how many times a query has been used lets
+        # repeats fall through to Pexels' 2nd/3rd result instead.
+        query_occurrences = {}
+
         if "features" in places_data:
 
             for item in places_data["features"]:
@@ -105,7 +112,15 @@ def _fetch_places(country):
                 # searching "X, India" for every place in the country
                 # tends to return the same generic/iconic photos repeated
                 # across unrelated destinations.
-                image_url = get_place_image(f"{place_name}, {place_city}")
+                image_query = f"{place_name}, {place_city}"
+                # Track case-insensitively -- image_service's own cache key
+                # is lowercased, so "Geoglifo" and "geoglifo" resolve to
+                # the same underlying Pexels query regardless of casing.
+                dedup_key = image_query.strip().lower()
+                occurrence = query_occurrences.get(dedup_key, 0)
+                query_occurrences[dedup_key] = occurrence + 1
+
+                image_url = get_place_image(image_query, page=occurrence + 1)
 
                 destination = {
 
