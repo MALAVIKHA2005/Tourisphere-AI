@@ -21,6 +21,7 @@ import {
 import { retryFetch } from "../utils/retry";
 import { searchCountries } from "../services/countrySearchService";
 import { fetchDishes } from "../services/dishService";
+import { fetchStates } from "../services/stateSearchService";
 import DestinationModal from "./DestinationModal";
 import AnalyticsCharts from "./AnalyticsCharts";
 
@@ -48,23 +49,8 @@ const RecommendationForm = () => {
 
   const [favorites, setFavorites] = useState([]);
   const [countryDishes, setCountryDishes] = useState([]);
+  const [states, setStates] = useState([]);
 
-  // Built from BOTH the static catalogue and the most recent search
-  // results (which include real, live-fetched dynamic places) -- the
-  // static catalogue alone only has meaningful state coverage for India,
-  // leaving this empty for almost every other country.
-  const states = [
-    ...new Set(
-      [...destinationsData, ...results]
-        .filter(
-          (d) =>
-            !countryQuery.trim() ||
-            d.country?.toLowerCase() === countryQuery.trim().toLowerCase()
-        )
-        .map((d) => d.state)
-        .filter(Boolean)
-    ),
-  ];
   const isFavorited = (destination) => {
     const key = getDestinationKey(destination);
 
@@ -124,6 +110,9 @@ const RecommendationForm = () => {
 
   const dishes = await fetchDishes(country);
   setCountryDishes(dishes);
+
+  const realStates = await fetchStates(country);
+  setStates(realStates);
  };
 
  const handleGenerateRecommendations = async () => {
@@ -310,6 +299,7 @@ useEffect(() => {
                 setCountryQuery(e.target.value);
                 setShowCountrySuggestions(true);
                 setState("");
+                setStates([]);
               }}
               onFocus={() => setShowCountrySuggestions(true)}
               onBlur={() =>
