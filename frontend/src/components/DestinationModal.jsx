@@ -110,7 +110,19 @@ const DestinationModal = ({ destination, onClose }) => {
     setLoadingEducation(true);
 
     fetchEducation(destination.city || destination.name, destination.country)
-      .then(setEducation)
+      .then((data) => {
+        setEducation(data);
+
+        // Small towns (most of the static catalogue -- Ooty, Kodaikanal,
+        // Munnar) genuinely have zero universities, only colleges/schools.
+        // Defaulting to "university" made the section look broken on
+        // first open even when real data existed one tab over.
+        const firstNonEmpty = EDUCATION_TABS.find(
+          (tab) => data[tab.key]?.length > 0
+        );
+
+        if (firstNonEmpty) setEducationTab(firstNonEmpty.key);
+      })
       .finally(() => setLoadingEducation(false));
   }, [destination]);
 
