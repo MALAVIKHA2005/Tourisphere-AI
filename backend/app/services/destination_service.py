@@ -25,15 +25,19 @@ LOW_SIGNAL_CATEGORIES = {
 }
 
 
-def get_places(country, state=None):
-    cache_key = f"{(country or '').strip().lower()}|{(state or '').strip().lower()}"
+def get_places(country, state=None, city=None):
+    cache_key = (
+        f"{(country or '').strip().lower()}"
+        f"|{(state or '').strip().lower()}"
+        f"|{(city or '').strip().lower()}"
+    )
 
     cached = _places_cache.get(cache_key)
 
     if cached and cached["expires_at"] > time.time():
         return cached["places"]
 
-    places = _fetch_places(country, state)
+    places = _fetch_places(country, state, city)
 
     _places_cache[cache_key] = {
         "places": places,
@@ -43,22 +47,31 @@ def get_places(country, state=None):
     return places
 
 
-def _fetch_places(country, state=None):
+def _fetch_places(country, state=None, city=None):
     if not API_KEY:
         return []
 
     try:
 
         # -----------------------------
-        # STEP 1 : Get Country (or State) Coordinates
+        # STEP 1 : Get Country/State/City Coordinates
         # -----------------------------
         # A country-wide search only returns 40 results total across the
-        # ENTIRE country -- filtering that down to one state client-side
-        # left most states (and cities like Coimbatore) with almost
-        # nothing. Geocoding "state, country" instead scopes the whole
-        # search to that state, so a state filter gets its own real
-        # sample instead of table scraps from the country-wide one.
-        geo_text = f"{state}, {country}" if state else country
+        # ENTIRE country, and a state-wide search only 40 across that
+        # whole state -- a large state can have hundreds of real tourism
+        # sights, so any specific city (e.g. Coimbatore within Tamil
+        # Nadu) isn't guaranteed to land in that sample at all. Geocoding
+        # "city, state, country" scopes the search down to that city
+        # specifically, guaranteeing it gets its own real results instead
+        # of hoping it survives a broader, non-fame-ranked sample.
+        if city and state:
+            geo_text = f"{city}, {state}, {country}"
+        elif city:
+            geo_text = f"{city}, {country}"
+        elif state:
+            geo_text = f"{state}, {country}"
+        else:
+            geo_text = country
 
         geo_url = (
             "https://api.geoapify.com/v1/geocode/search"
@@ -174,7 +187,14 @@ def _fetch_places(country, state=None):
                     # faking one.
                     "rating": None,
 
-                    "budget": "Medium",
+                    # Same issue rating had -- Geoapify has no real cost
+                    # data for tourism.sights, so a hardcoded "Medium" was
+                    # identical on every dynamic card. Left null so the
+                    # Budget filter only ever matches the curated catalogue
+                    # (which has a real, if editorial, per-place label)
+                    # rather than silently pretending live-searched places
+                    # are all "Medium" cost.
+                    "budget": None,
 
                     "popularity": 90,
 

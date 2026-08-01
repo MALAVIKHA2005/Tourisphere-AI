@@ -52,6 +52,8 @@ const RecommendationForm = () => {
   const [states, setStates] = useState([]);
   const [stateResults, setStateResults] = useState(null);
   const [loadingStateResults, setLoadingStateResults] = useState(false);
+  const [cityInput, setCityInput] = useState("");
+  const [city, setCity] = useState("");
 
   const isFavorited = (destination) => {
     const key = getDestinationKey(destination);
@@ -125,6 +127,8 @@ const RecommendationForm = () => {
  // real sample instead of scraps filtered out of the country-wide one.
  const handleSelectState = async (newState) => {
   setState(newState);
+  setCity("");
+  setCityInput("");
 
   if (!newState) {
     setStateResults(null);
@@ -141,6 +145,41 @@ const RecommendationForm = () => {
   );
 
   const dynamicPlaces = await fetchDynamicDestinations(countryQuery, newState);
+
+  setStateResults([...staticMatches, ...dynamicPlaces]);
+  setLoadingStateResults(false);
+ };
+
+ // Even a state-wide search only returns 40 results across that WHOLE
+ // state -- a large state can have hundreds of real tourism sights, so
+ // one specific city (e.g. Coimbatore) isn't guaranteed to appear at all.
+ // Searching a city directly scopes the fetch to just that city.
+ const handleSearchCity = async () => {
+  const typedCity = cityInput.trim();
+
+  setCity(typedCity);
+
+  if (!typedCity) {
+    // Dropped back to no city filter -- restore whatever the state (or
+    // country-wide) view was before city narrowing was applied.
+    if (state) {
+      handleSelectState(state);
+    } else {
+      setStateResults(null);
+    }
+    return;
+  }
+
+  setLoadingStateResults(true);
+  setStateResults(null);
+
+  const staticMatches = destinationsData.filter(
+    (d) =>
+      d.country.toLowerCase() === countryQuery.toLowerCase() &&
+      d.city?.toLowerCase() === typedCity.toLowerCase()
+  );
+
+  const dynamicPlaces = await fetchDynamicDestinations(countryQuery, state, typedCity);
 
   setStateResults([...staticMatches, ...dynamicPlaces]);
   setLoadingStateResults(false);
@@ -174,11 +213,11 @@ const RecommendationForm = () => {
      
   useEffect(() => {
   // Weather must be fetched for whatever is actually being displayed --
-  // when a state is selected, that's stateResults, not the original
-  // country-wide `results`. This previously only watched `results`, so
-  // selecting a state left every card's weather stuck on "Loading..."
-  // forever, since results never changed and the effect never re-ran.
-  const activeResults = state ? stateResults || [] : results;
+  // when a state or city is selected, that's stateResults, not the
+  // original country-wide `results`. Must match baseResults' condition
+  // below exactly, or a city-only search (no state picked) silently
+  // fetches weather for the wrong (stale, unscoped) result set.
+  const activeResults = state || city ? stateResults || [] : results;
 
   const loadWeather = async () => {
     const weatherResults = {};
@@ -197,7 +236,7 @@ const RecommendationForm = () => {
   if (activeResults.length > 0) {
     loadWeather();
   }
-}, [state, stateResults, results]);
+}, [state, city, stateResults, results]);
 useEffect(() => {
   const loadTravelHistory = async () => {
     const history = await fetchTravelHistory(10);
@@ -236,6 +275,8 @@ const handleSelectCountry = (name) => {
   setCountrySuggestions([]);
   setState("");
   setStateResults(null);
+  setCity("");
+  setCityInput("");
   fetchForCountry(name);
 };
 
@@ -287,7 +328,7 @@ useEffect(() => {
     return Math.round((matched / softCriteria.length) * 100);
   };
 
-  const baseResults = state ? stateResults || [] : results;
+  const baseResults = state || city ? stateResults || [] : results;
 
   const displayedResults = baseResults
     .map((place) => ({ ...place, matchScore: computeMatchScore(place) }))
@@ -341,6 +382,8 @@ useEffect(() => {
                 setState("");
                 setStates([]);
                 setStateResults(null);
+                setCity("");
+                setCityInput("");
               }}
               onFocus={() => setShowCountrySuggestions(true)}
               onBlur={() =>
@@ -385,6 +428,22 @@ useEffect(() => {
             ))}
           </select>
 
+          {/* City (optional) -- even a state-wide search is capped at 40
+              results across the whole state, so a specific city isn't
+              guaranteed to show up. Searching it directly scopes down to
+              just that city. */}
+
+          <input
+            type="text"
+            className={fieldClass}
+            placeholder="City (optional)..."
+            value={cityInput}
+            onChange={(e) => setCityInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSearchCity()}
+            onBlur={handleSearchCity}
+            title="Search a specific city -- state/country searches only sample 40 results and may not include it"
+          />
+
           {/* Budget */}
 
           <select
@@ -393,6 +452,7 @@ useEffect(() => {
             onChange={(e) =>
               setBudget(e.target.value)
             }
+            title="Only matches the curated catalogue -- live-searched places don't have real budget data yet"
           >
             <option value="">
               Budget
@@ -639,7 +699,9 @@ useEffect(() => {
       )}
 
       {loadingStateResults && (
-        <p className="text-gray-500 mb-6">Finding destinations in {state}...</p>
+        <p className="text-gray-500 mb-6">
+          Finding destinations in {city || state}...
+        </p>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

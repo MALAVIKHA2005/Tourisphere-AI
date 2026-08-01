@@ -19,6 +19,6 @@ def get_destinations():
 
 
 @router.get("/dynamic-destinations")
-def dynamic_destinations(country: str, state: str = None):
+def dynamic_destinations(country: str, state: str = None, city: str = None):
 
-    return get_places(country, state)
+    return get_places(country, state, city)
