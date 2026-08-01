@@ -241,6 +241,17 @@ popular_destinations = [
         "budget": "High", "bestMonths": ["June", "July", "August", "December"],
         "climate": "Cool", "rating": 4.9, "popularity": 88, "safetyScore": 97, "familyScore": 92,
     },
+    {
+        # OpenStreetMap doesn't tag this (or most spiritual/meditation
+        # sites) as a "tourism" attraction, so it never surfaces via the
+        # live dynamic search -- added here, in the curated catalogue,
+        # so it reliably appears for India/Tamil Nadu/Coimbatore searches
+        # instead of depending on OSM tagging that doesn't exist.
+        "id": 23, "name": "Isha Yoga Center (Adiyogi Statue)", "city": "Coimbatore", "country": "India", "state": "Tamil Nadu",
+        "interests": ["Culture", "Nature"], "suitableFor": ["Solo", "Couple", "Family", "Friends"],
+        "budget": "Low", "bestMonths": ["October", "November", "December", "January", "February"],
+        "climate": "Warm", "rating": 4.8, "popularity": 92, "safetyScore": 90, "familyScore": 85,
+    },
 ]
 
 for destination in popular_destinations:
