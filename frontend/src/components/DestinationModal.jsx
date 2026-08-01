@@ -53,7 +53,7 @@ const DestinationModal = ({ destination, onClose }) => {
   };
 
   const stat = (label, value) => (
-    <div className="bg-gray-50 rounded-lg p-3">
+    <div className="bg-gray-50 rounded-xl p-3 hover:bg-gray-100 transition-colors">
       <p className="text-xs uppercase tracking-wide text-gray-400">{label}</p>
       <p className="font-semibold">{value || "No data"}</p>
     </div>
@@ -61,17 +61,17 @@ const DestinationModal = ({ destination, onClose }) => {
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4"
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-4"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-xl shadow-xl w-full md:w-2/3 lg:w-1/2 max-h-[90vh] overflow-y-auto relative"
+        className="bg-white rounded-2xl shadow-2xl w-full md:w-2/3 lg:w-1/2 max-h-[90vh] overflow-y-auto relative"
         onClick={(e) => e.stopPropagation()}
       >
 
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 bg-white/90 rounded-full w-9 h-9 flex items-center justify-center text-xl font-bold shadow z-10"
+          className="absolute top-4 right-4 bg-white/90 rounded-full w-9 h-9 flex items-center justify-center text-xl font-bold shadow hover:bg-white hover:scale-110 transition-all z-10"
         >
           ✖
         </button>
@@ -81,17 +81,17 @@ const DestinationModal = ({ destination, onClose }) => {
           <img
             src={destination.image}
             alt={destination.name}
-            className="w-full h-56 md:h-64 object-cover rounded-t-xl"
+            className="w-full h-56 md:h-64 object-cover rounded-t-2xl"
           />
         ) : (
-          <div className="w-full h-56 md:h-64 bg-gray-200 rounded-t-xl flex items-center justify-center text-2xl">
+          <div className="w-full h-56 md:h-64 bg-gray-200 rounded-t-2xl flex items-center justify-center text-2xl">
             📍 No Image Available
           </div>
         )}
 
         <div className="p-6">
 
-          <h2 className="text-3xl font-bold mb-4">
+          <h2 className="text-3xl font-bold mb-4 bg-gradient-to-r from-orange-500 to-pink-500 bg-clip-text text-transparent inline-block">
             {destination.name || "Unknown Destination"}
           </h2>
 
@@ -140,7 +140,10 @@ const DestinationModal = ({ destination, onClose }) => {
             {!loadingHotels && hotels.length > 0 && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {hotels.map((h, i) => (
-                  <div key={i} className="bg-gray-50 rounded-lg overflow-hidden">
+                  <div
+                    key={i}
+                    className="bg-gray-50 rounded-xl overflow-hidden hover:shadow-md transition-shadow"
+                  >
                     {h.image && (
                       <img
                         src={h.image}
@@ -165,7 +168,7 @@ const DestinationModal = ({ destination, onClose }) => {
                           href={h.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-xs text-blue-600 hover:underline mt-1 inline-block"
+                          className="text-xs text-orange-600 hover:text-orange-700 hover:underline mt-1 inline-block font-medium"
                           onClick={(e) => e.stopPropagation()}
                         >
                           View & Book on TripAdvisor →
@@ -196,10 +199,10 @@ const DestinationModal = ({ destination, onClose }) => {
                     <button
                       key={c}
                       onClick={() => setCuisineFilter(c)}
-                      className={`text-xs px-3 py-1 rounded-full border ${
+                      className={`text-xs px-3 py-1 rounded-full border transition-all ${
                         cuisineFilter === c
-                          ? "bg-blue-600 text-white border-blue-600"
-                          : "bg-white text-gray-600 border-gray-300"
+                          ? "bg-gradient-to-r from-orange-500 to-pink-500 text-white border-transparent shadow-sm"
+                          : "bg-white text-gray-600 border-gray-300 hover:border-orange-300"
                       }`}
                     >
                       {c}
@@ -211,7 +214,10 @@ const DestinationModal = ({ destination, onClose }) => {
                   {restaurants
                     .filter((r) => cuisineFilter === "All" || r.cuisine === cuisineFilter)
                     .map((r, i) => (
-                      <div key={i} className="bg-gray-50 rounded-lg p-3">
+                      <div
+                        key={i}
+                        className="bg-gray-50 rounded-xl p-3 hover:shadow-md transition-shadow"
+                      >
                         <p className="font-semibold">{r.name}</p>
                         <p className="text-xs text-gray-500">{r.cuisine}</p>
                         {r.address && (
@@ -225,7 +231,7 @@ const DestinationModal = ({ destination, onClose }) => {
                             href={`https://www.google.com/maps?q=${r.latitude},${r.longitude}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-xs text-blue-600 hover:underline mt-1 inline-block"
+                            className="text-xs text-orange-600 hover:text-orange-700 hover:underline mt-1 inline-block font-medium"
                             onClick={(e) => e.stopPropagation()}
                           >
                             View on Map →

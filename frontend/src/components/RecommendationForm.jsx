@@ -297,11 +297,14 @@ const convertCost = (cost) => {
   const bestMatchScore =
     displayedResults.length > 0 ? displayedResults[0].matchScore : 0;
 
+  const fieldClass =
+    "border border-gray-200 p-3 rounded-xl w-full bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all";
+
   return (
     <div>
       {/* FILTER SECTION */}
-     
-      <div className="bg-white rounded-xl shadow-md p-6 mb-8">
+
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8">
 
         <h2 className="text-xl font-bold flex items-center gap-3">
             {destinationsLoading
@@ -312,21 +315,21 @@ const convertCost = (cost) => {
             {destinationsFailed && !destinationsLoading && (
               <button
                 onClick={loadDestinations}
-                className="text-sm bg-black text-white px-3 py-1 rounded-lg font-normal"
+                className="text-sm bg-gradient-to-r from-orange-500 to-pink-500 text-white px-3 py-1 rounded-lg font-normal hover:opacity-90 transition-opacity"
               >
                 Retry
               </button>
             )}
             </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
 
           {/* Country */}
 
           <div className="relative">
             <input
               type="text"
-              className="border p-3 rounded-lg w-full"
+              className={fieldClass}
               placeholder="Type any country..."
               value={countryQuery}
               onChange={(e) => {
@@ -359,7 +362,7 @@ const convertCost = (cost) => {
           {/* State */}
 
           <select
-            className="border p-3 rounded-lg"
+            className={fieldClass}
             value={state}
             onChange={(e) =>
               setState(e.target.value)
@@ -382,7 +385,7 @@ const convertCost = (cost) => {
           {/* Budget */}
 
           <select
-            className="border p-3 rounded-lg"
+            className={fieldClass}
             value={budget}
             onChange={(e) =>
               setBudget(e.target.value)
@@ -408,7 +411,7 @@ const convertCost = (cost) => {
           {/* Interest */}
 
           <select
-            className="border p-3 rounded-lg"
+            className={fieldClass}
             value={interest}
             onChange={(e) =>
               setInterest(e.target.value)
@@ -450,7 +453,7 @@ const convertCost = (cost) => {
           {/* Travel Type */}
 
           <select
-            className="border p-3 rounded-lg"
+            className={fieldClass}
             value={travelType}
             onChange={(e) =>
               setTravelType(e.target.value)
@@ -480,7 +483,7 @@ const convertCost = (cost) => {
           {/* Month */}
 
           <select
-            className="border p-3 rounded-lg"
+            className={fieldClass}
             value={month}
             onChange={(e) =>
               setMonth(e.target.value)
@@ -516,7 +519,7 @@ const convertCost = (cost) => {
           {/* Climate */}
 
           <select
-            className="border p-3 rounded-lg"
+            className={fieldClass}
             value={climate}
             onChange={(e) =>
               setClimate(e.target.value)
@@ -542,7 +545,7 @@ const convertCost = (cost) => {
           {/* Currency */}
 
           <select
-            className="border p-3 rounded-lg"
+            className={fieldClass}
             value={currency}
             onChange={(e) =>
               setCurrency(e.target.value)
@@ -571,7 +574,7 @@ const convertCost = (cost) => {
 
         <button
           onClick={handleGenerateRecommendations}
-          className="mt-6 bg-black text-white px-6 py-3 rounded-lg"
+          className="mt-6 bg-gradient-to-r from-orange-500 to-pink-500 text-white px-8 py-3 rounded-full font-semibold shadow-lg shadow-orange-200 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
         >
           Generate Recommendations
         </button>
@@ -589,21 +592,21 @@ const convertCost = (cost) => {
       {travelHistory.map((item, index) => (
         <div
           key={index}
-          className="bg-white rounded-xl shadow-md p-4"
+          className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
         >
           <h3 className="font-bold text-lg">
             {item.destination}
           </h3>
 
-          <p>{item.country}</p>
+          <p className="text-gray-600">{item.country}</p>
 
-          <p>{item.state}</p>
+          <p className="text-gray-400 text-sm">{item.state}</p>
 
-          <p className="text-yellow-600">
+          <p className="text-yellow-600 mt-1">
             ⭐ {item.rating}
           </p>
 
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-400">
             {new Date(item.viewed_at).toLocaleString()}
           </p>
         </div>
@@ -621,42 +624,42 @@ const convertCost = (cost) => {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
 
-  <div className="bg-white rounded-xl shadow-md p-5">
-    <h3 className="text-gray-500">
+  <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 border-t-4 border-t-orange-400 hover:shadow-md transition-shadow">
+    <h3 className="text-gray-500 text-sm">
       Total Destinations
     </h3>
 
-    <p className="text-3xl font-bold">
+    <p className="text-3xl font-bold mt-1">
       {displayedResults.length}
     </p>
   </div>
 
-  <div className="bg-white rounded-xl shadow-md p-5">
-    <h3 className="text-gray-500">
+  <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 border-t-4 border-t-yellow-400 hover:shadow-md transition-shadow">
+    <h3 className="text-gray-500 text-sm">
       Average Rating
     </h3>
 
-    <p className="text-3xl font-bold">
+    <p className="text-3xl font-bold mt-1">
       ⭐ {averageRating}
     </p>
   </div>
 
-  <div className="bg-white rounded-xl shadow-md p-5">
-    <h3 className="text-gray-500">
+  <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 border-t-4 border-t-pink-400 hover:shadow-md transition-shadow">
+    <h3 className="text-gray-500 text-sm">
       Favorites
     </h3>
 
-    <p className="text-3xl font-bold">
+    <p className="text-3xl font-bold mt-1">
       ❤️ {favorites.length}
     </p>
   </div>
 
-  <div className="bg-white rounded-xl shadow-md p-5">
-    <h3 className="text-gray-500">
+  <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 border-t-4 border-t-green-400 hover:shadow-md transition-shadow">
+    <h3 className="text-gray-500 text-sm">
       Best Match Score
     </h3>
 
-    <p className="text-3xl font-bold text-green-600">
+    <p className="text-3xl font-bold text-green-600 mt-1">
       {bestMatchScore}%
     </p>
   </div>
@@ -666,11 +669,11 @@ const convertCost = (cost) => {
       {/* RESULTS */}
 
       {countryDishes.length > 0 && (
-        <div className="bg-white rounded-xl shadow-md p-5 mb-6">
+        <div className="bg-orange-50 rounded-2xl border-l-4 border-orange-400 p-5 mb-6">
           <h3 className="font-bold text-lg mb-2">
             🍲 Popular Dishes in {countryQuery}
           </h3>
-          <p className="text-gray-600">{countryDishes.join(", ")}</p>
+          <p className="text-gray-700">{countryDishes.join(", ")}</p>
         </div>
       )}
 
@@ -685,22 +688,24 @@ const convertCost = (cost) => {
               place
             );
           }}
-            className="bg-white rounded-xl shadow-md overflow-hidden cursor-pointer hover:shadow-xl transition flex flex-col h-full"
+            className="group bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 flex flex-col h-full"
           >
 
-            <img
-            src={
-              place.image ||
-              "https://images.unsplash.com/photo-1506744038136-46273834b3fb"
-            }
-            alt={place.name}
-            className="h-48 w-full object-cover flex-shrink-0"
-            />
+            <div className="overflow-hidden">
+              <img
+              src={
+                place.image ||
+                "https://images.unsplash.com/photo-1506744038136-46273834b3fb"
+              }
+              alt={place.name}
+              className="h-48 w-full object-cover flex-shrink-0 group-hover:scale-110 transition-transform duration-500"
+              />
+            </div>
 
             <div className="p-4 flex flex-col flex-1">
 
               {index === 0 && (
-                <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-bold inline-block mb-2 self-start">
+                <div className="bg-gradient-to-r from-green-400 to-emerald-500 text-white px-3 py-1 rounded-full text-sm font-bold inline-block mb-2 self-start shadow-sm">
                   🏆 Best Match
                 </div>
               )}
@@ -751,7 +756,7 @@ const convertCost = (cost) => {
                   e.stopPropagation();
                   addToFavorites(place);
                 }}
-                className="mt-auto bg-red-500 text-white px-4 py-2 rounded-lg self-start"
+                className="mt-auto bg-gradient-to-r from-red-500 to-pink-500 text-white px-4 py-2 rounded-full self-start shadow-sm hover:shadow-md hover:scale-105 active:scale-95 transition-all duration-200"
               >
                 ❤️ Add to Favorites
               </button>

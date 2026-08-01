@@ -31,12 +31,19 @@ function App() {
     setActivePage("overview");
   };
 
+  const navButtonClass = (isActive) =>
+    `w-full text-left px-4 py-3 rounded-xl font-medium transition-all duration-200 ${
+      isActive
+        ? "bg-gradient-to-r from-orange-500 to-pink-500 text-white shadow-md shadow-orange-200"
+        : "bg-transparent text-gray-600 hover:bg-orange-50 hover:text-orange-600"
+    }`;
+
   return (
-    <div className="min-h-screen bg-gray-100 flex">
+    <div className="min-h-screen bg-gray-50 flex">
 
       {/* Sidebar */}
-      <div className="w-64 bg-white shadow-md p-6">
-        <h1 className="text-3xl font-bold mb-8">
+      <div className="w-64 bg-white shadow-md p-6 sticky top-0 h-screen overflow-y-auto">
+        <h1 className="text-3xl font-bold mb-8 bg-gradient-to-r from-orange-500 to-pink-500 bg-clip-text text-transparent">
           Tourisphere
         </h1>
 
@@ -59,21 +66,13 @@ function App() {
             <div className="space-y-2">
               <button
                 onClick={() => setActivePage("login")}
-                className={`w-full text-left px-4 py-2 rounded-lg text-sm ${
-                  activePage === "login"
-                    ? "bg-black text-white"
-                    : "bg-gray-100"
-                }`}
+                className={navButtonClass(activePage === "login").replace("py-3", "py-2 text-sm")}
               >
                 Sign In
               </button>
               <button
                 onClick={() => setActivePage("register")}
-                className={`w-full text-left px-4 py-2 rounded-lg text-sm ${
-                  activePage === "register"
-                    ? "bg-black text-white"
-                    : "bg-gray-100"
-                }`}
+                className={navButtonClass(activePage === "register").replace("py-3", "py-2 text-sm")}
               >
                 Create Account
               </button>
@@ -81,54 +80,42 @@ function App() {
           )}
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-2">
 
           <button
             onClick={() => setActivePage("overview")}
-            className={`w-full text-left px-4 py-3 rounded-lg ${
-              activePage === "overview"
-                ? "bg-black text-white"
-                : "bg-gray-100"
-            }`}
+            className={navButtonClass(activePage === "overview")}
           >
             Overview
           </button>
 
           <button
             onClick={() => setActivePage("recommendation")}
-            className={`w-full text-left px-4 py-3 rounded-lg ${
-              activePage === "recommendation"
-                ? "bg-black text-white"
-                : "bg-gray-100"
-            }`}
+            className={navButtonClass(activePage === "recommendation")}
           >
             Recommendation
           </button>
 
           <button
             onClick={() => setActivePage("myActivity")}
-            className={`w-full text-left px-4 py-3 rounded-lg ${
-              activePage === "myActivity"
-                ? "bg-black text-white"
-                : "bg-gray-100"
-            }`}
+            className={navButtonClass(activePage === "myActivity")}
           >
             My Activity
           </button>
 
-          <button className="w-full text-left px-4 py-3 rounded-lg bg-gray-100">
+          <button className={navButtonClass(false)}>
             Forecasting
           </button>
 
-          <button className="w-full text-left px-4 py-3 rounded-lg bg-gray-100">
+          <button className={navButtonClass(false)}>
             Segmentation
           </button>
 
-          <button className="w-full text-left px-4 py-3 rounded-lg bg-gray-100">
+          <button className={navButtonClass(false)}>
             Sentiment
           </button>
 
-          <button className="w-full text-left px-4 py-3 rounded-lg bg-gray-100">
+          <button className={navButtonClass(false)}>
             Dataset
           </button>
 
@@ -136,7 +123,7 @@ function App() {
 
         <button
           onClick={() => setActivePage("privacy")}
-          className="w-full text-left px-4 py-2 mt-6 text-xs text-gray-400 hover:text-gray-600"
+          className="w-full text-left px-4 py-2 mt-6 text-xs text-gray-400 hover:text-gray-600 transition-colors"
         >
           Privacy Notice
         </button>
