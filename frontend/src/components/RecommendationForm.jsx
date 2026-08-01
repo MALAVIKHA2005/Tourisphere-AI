@@ -27,8 +27,6 @@ import DestinationModal from "./DestinationModal";
 import AnalyticsCharts from "./AnalyticsCharts";
 
 const RecommendationForm = () => {
-  const [searchTerm, setSearchTerm] = useState("");
-
   const [countryQuery, setCountryQuery] = useState("");
   const [countrySuggestions, setCountrySuggestions] = useState([]);
   const [showCountrySuggestions, setShowCountrySuggestions] = useState(false);
@@ -57,7 +55,7 @@ const RecommendationForm = () => {
     INR: 1,
   });
   const [favorites, setFavorites] = useState([]);
-  const [dishesByCountry, setDishesByCountry] = useState({});
+  const [countryDishes, setCountryDishes] = useState([]);
 
   // Built from BOTH the static catalogue and the most recent search
   // results (which include real, live-fetched dynamic places) -- the
@@ -75,22 +73,6 @@ const RecommendationForm = () => {
         .filter(Boolean)
     ),
   ];
-  const averageRating =
-  results.length > 0
-    ? (
-        results.reduce(
-          (sum, place) => sum + place.rating,
-          0
-        ) / results.length
-      ).toFixed(1)
-    : 0;
-
-const bestMatchScore =
-  results.length > 0
-    ? results[0].matchScore
-    : 0;
-
-
   const addToFavorites = async (destination) => {
     const key = getDestinationKey(destination);
 
@@ -109,6 +91,33 @@ const bestMatchScore =
       ]);
     }
   };
+ // Fetches (static + dynamic) results for a resolved, canonical country
+ // name. Called both from "Generate Recommendations" and immediately when
+ // a country is picked from the autocomplete list -- waiting for a manual
+ // Generate click meant the State dropdown (built from these results)
+ // looked empty/broken for every country until you'd already searched it.
+ const fetchForCountry = async (country) => {
+  const staticMatches = destinationsData.filter(
+    (d) => d.country.toLowerCase() === country.toLowerCase()
+  );
+
+  const dynamicPlaces =
+    await fetchDynamicDestinations(country);
+    console.log("Dynamic Places:", dynamicPlaces);
+
+  const combined = [...staticMatches, ...dynamicPlaces];
+
+  setResults(combined);
+
+  logSearch(
+    { country, state, budget, climate, interest, travelType, month },
+    combined.length
+  );
+
+  const dishes = await fetchDishes(country);
+  setCountryDishes(dishes);
+ };
+
  const handleGenerateRecommendations = async () => {
   const typed = countryQuery.trim();
 
@@ -131,72 +140,7 @@ const bestMatchScore =
   }
 
   setCountryQuery(country);
-
-  const staticMatches = destinationsData.filter(
-    (d) => d.country.toLowerCase() === country.toLowerCase()
-  );
-
-  // fetch dynamic places
-  const dynamicPlaces =
-    await fetchDynamicDestinations(country);
-    console.log("Dynamic Places:", dynamicPlaces);
-
-  // Apply filters to the FULL combined set (static + dynamic) -- applying
-  // them only to the static subset meant these filters silently did
-  // nothing for dynamic results, which are the majority of results for
-  // most non-seeded countries.
-  let combined = [...staticMatches, ...dynamicPlaces];
-
-  if (state)
-    combined = combined.filter(
-      (d) => d.state === state
-    );
-
-  if (budget)
-    combined = combined.filter(
-      (d) => d.budget === budget
-    );
-
-  if (interest)
-    combined = combined.filter(
-      (d) =>
-        d.interests &&
-        d.interests.includes(interest)
-    );
-
-  if (travelType)
-    combined = combined.filter(
-      (d) =>
-        d.suitableFor &&
-        d.suitableFor.includes(travelType)
-    );
-
-  if (month)
-    combined = combined.filter(
-      (d) =>
-        d.bestMonths &&
-        d.bestMonths.includes(month)
-    );
-
-  if (climate)
-    combined = combined.filter(
-      (d) => d.climate === climate
-    );
-
-  // surface the most notable places first -- Geoapify's country-wide
-  // sight search has no fame/popularity signal, so without this,
-  // well-known curated destinations (e.g. Agra/Taj Mahal, rating 4.9)
-  // can get buried among arbitrary dynamic results that all share the
-  // same flat rating.
-  combined = combined.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-
-  setResults(combined);
-
-  logSearch(
-    { country, state, budget, climate, interest, travelType, month },
-    combined.length
-  );
-
+  await fetchForCountry(country);
 };
     
      
@@ -266,6 +210,7 @@ const handleSelectCountry = (name) => {
   setShowCountrySuggestions(false);
   setCountrySuggestions([]);
   setState("");
+  fetchForCountry(name);
 };
 
 const loadDestinations = async () => {
@@ -311,40 +256,46 @@ const convertCost = (cost) => {
   )}`;
 };
 
-  // Quick live search over the curated catalogue -- independent of the
-  // country/Generate flow, so typing a destination name jumps straight to
-  // matching cards without needing to pick a country first.
-  const term = searchTerm.trim().toLowerCase();
-  const displayedResults = term
-    ? destinationsData.filter((d) =>
-        [d.name, d.city, d.state, d.country].some((v) =>
-          v?.toLowerCase().includes(term)
-        )
-      )
-    : results;
+  // Match Score: a genuine percentage of the SELECTED soft criteria
+  // (budget/interest/travelType/month/climate) this place satisfies --
+  // not a fabricated number. State is a hard filter below (it's a real
+  // geographic constraint, not a preference to rank by). With no soft
+  // criteria selected, score falls back to rating so it's still a
+  // meaningful, non-blank number.
+  const computeMatchScore = (place) => {
+    const softCriteria = [
+      [budget, place.budget === budget],
+      [interest, (place.interests || []).includes(interest)],
+      [travelType, (place.suitableFor || []).includes(travelType)],
+      [month, (place.bestMonths || []).includes(month)],
+      [climate, place.climate === climate],
+    ].filter(([selected]) => Boolean(selected));
 
-  const uniqueCountries = [
-    ...new Set(displayedResults.map((p) => p.country).filter(Boolean)),
-  ];
-  const countriesKey = [...uniqueCountries].sort().join("|");
+    if (softCriteria.length === 0) {
+      return Math.round(((place.rating || 0) / 5) * 100);
+    }
 
-  useEffect(() => {
-    const missing = uniqueCountries.filter((c) => !(c in dishesByCountry));
+    const matched = softCriteria.filter(([, isMatch]) => isMatch).length;
+    return Math.round((matched / softCriteria.length) * 100);
+  };
 
-    if (missing.length === 0) return;
+  const displayedResults = results
+    .filter((place) => !state || place.state === state)
+    .map((place) => ({ ...place, matchScore: computeMatchScore(place) }))
+    .sort(
+      (a, b) => b.matchScore - a.matchScore || (b.rating || 0) - (a.rating || 0)
+    );
 
-    (async () => {
-      const entries = await Promise.all(
-        missing.map(async (c) => [c, await fetchDishes(c)])
-      );
+  const averageRating =
+    displayedResults.length > 0
+      ? (
+          displayedResults.reduce((sum, place) => sum + (place.rating || 0), 0) /
+          displayedResults.length
+        ).toFixed(1)
+      : 0;
 
-      setDishesByCountry((prev) => ({
-        ...prev,
-        ...Object.fromEntries(entries),
-      }));
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [countriesKey]);
+  const bestMatchScore =
+    displayedResults.length > 0 ? displayedResults[0].matchScore : 0;
 
   return (
     <div>
@@ -352,15 +303,6 @@ const convertCost = (cost) => {
      
       <div className="bg-white rounded-xl shadow-md p-6 mb-8">
 
-        <input
-          type="text"
-          placeholder="Search destination..."
-          className="w-full border p-3 rounded-lg mb-6"
-          value={searchTerm}
-          onChange={(e) =>
-            setSearchTerm(e.target.value)
-          }
-        />
         <h2 className="text-xl font-bold flex items-center gap-3">
             {destinationsLoading
               ? "Loading destinations... (first request may take up to a minute while the server wakes up)"
@@ -685,7 +627,7 @@ const convertCost = (cost) => {
     </h3>
 
     <p className="text-3xl font-bold">
-      {results.length}
+      {displayedResults.length}
     </p>
   </div>
 
@@ -715,13 +657,22 @@ const convertCost = (cost) => {
     </h3>
 
     <p className="text-3xl font-bold text-green-600">
-      {bestMatchScore}
+      {bestMatchScore}%
     </p>
   </div>
 
 </div>
 
       {/* RESULTS */}
+
+      {countryDishes.length > 0 && (
+        <div className="bg-white rounded-xl shadow-md p-5 mb-6">
+          <h3 className="font-bold text-lg mb-2">
+            🍲 Popular Dishes in {countryQuery}
+          </h3>
+          <p className="text-gray-600">{countryDishes.join(", ")}</p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
@@ -792,15 +743,8 @@ const convertCost = (cost) => {
             </p>
 
               <p className="text-green-600 font-bold mt-2">
-                 Match Score:
-                 {place.matchScore || 0}
+                 Match Score: {place.matchScore}%
                  </p>
-
-              {dishesByCountry[place.country]?.length > 0 && (
-                <p className="text-sm text-gray-600 mt-2">
-                  🍲 Popular Dishes: {dishesByCountry[place.country].join(", ")}
-                </p>
-              )}
 
               <button
                 onClick={(e) => {
@@ -819,7 +763,7 @@ const convertCost = (cost) => {
 
       </div>
 
-      <AnalyticsCharts results={results} />
+      <AnalyticsCharts results={displayedResults} />
       <DestinationModal
         destination={selectedDestination}
         onClose={() =>
