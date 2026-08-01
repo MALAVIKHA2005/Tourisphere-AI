@@ -50,6 +50,8 @@ const RecommendationForm = () => {
   const [favorites, setFavorites] = useState([]);
   const [countryDishes, setCountryDishes] = useState([]);
   const [states, setStates] = useState([]);
+  const [stateResults, setStateResults] = useState(null);
+  const [loadingStateResults, setLoadingStateResults] = useState(false);
 
   const isFavorited = (destination) => {
     const key = getDestinationKey(destination);
@@ -113,6 +115,35 @@ const RecommendationForm = () => {
 
   const realStates = await fetchStates(country);
   setStates(realStates);
+ };
+
+ // A country-wide dynamic search only returns 40 results total across the
+ // ENTIRE country -- filtering that down to one state client-side left
+ // most states (and cities within them, e.g. Coimbatore within Tamil
+ // Nadu) with almost nothing. Selecting a state now re-fetches dynamic
+ // destinations scoped to that state specifically, so it gets its own
+ // real sample instead of scraps filtered out of the country-wide one.
+ const handleSelectState = async (newState) => {
+  setState(newState);
+
+  if (!newState) {
+    setStateResults(null);
+    return;
+  }
+
+  setLoadingStateResults(true);
+  setStateResults(null);
+
+  const staticMatches = destinationsData.filter(
+    (d) =>
+      d.country.toLowerCase() === countryQuery.toLowerCase() &&
+      d.state === newState
+  );
+
+  const dynamicPlaces = await fetchDynamicDestinations(countryQuery, newState);
+
+  setStateResults([...staticMatches, ...dynamicPlaces]);
+  setLoadingStateResults(false);
  };
 
  const handleGenerateRecommendations = async () => {
@@ -197,6 +228,7 @@ const handleSelectCountry = (name) => {
   setShowCountrySuggestions(false);
   setCountrySuggestions([]);
   setState("");
+  setStateResults(null);
   fetchForCountry(name);
 };
 
@@ -248,8 +280,9 @@ useEffect(() => {
     return Math.round((matched / softCriteria.length) * 100);
   };
 
-  const displayedResults = results
-    .filter((place) => !state || place.state === state)
+  const baseResults = state ? stateResults || [] : results;
+
+  const displayedResults = baseResults
     .map((place) => ({ ...place, matchScore: computeMatchScore(place) }))
     .sort(
       (a, b) =>
@@ -300,6 +333,7 @@ useEffect(() => {
                 setShowCountrySuggestions(true);
                 setState("");
                 setStates([]);
+                setStateResults(null);
               }}
               onFocus={() => setShowCountrySuggestions(true)}
               onBlur={() =>
@@ -328,9 +362,7 @@ useEffect(() => {
           <select
             className={fieldClass}
             value={state}
-            onChange={(e) =>
-              setState(e.target.value)
-            }
+            onChange={(e) => handleSelectState(e.target.value)}
           >
             <option value="">
               Select State
@@ -597,6 +629,10 @@ useEffect(() => {
           </h3>
           <p className="text-gray-700">{countryDishes.join(", ")}</p>
         </div>
+      )}
+
+      {loadingStateResults && (
+        <p className="text-gray-500 mb-6">Finding destinations in {state}...</p>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

@@ -14,15 +14,15 @@ CACHE_TTL_SECONDS = 60 * 60  # dynamic places for a country don't change hour to
 _places_cache = {}
 
 
-def get_places(country):
-    cache_key = (country or "").strip().lower()
+def get_places(country, state=None):
+    cache_key = f"{(country or '').strip().lower()}|{(state or '').strip().lower()}"
 
     cached = _places_cache.get(cache_key)
 
     if cached and cached["expires_at"] > time.time():
         return cached["places"]
 
-    places = _fetch_places(country)
+    places = _fetch_places(country, state)
 
     _places_cache[cache_key] = {
         "places": places,
@@ -32,18 +32,26 @@ def get_places(country):
     return places
 
 
-def _fetch_places(country):
+def _fetch_places(country, state=None):
     if not API_KEY:
         return []
 
     try:
 
         # -----------------------------
-        # STEP 1 : Get Country Coordinates
+        # STEP 1 : Get Country (or State) Coordinates
         # -----------------------------
+        # A country-wide search only returns 40 results total across the
+        # ENTIRE country -- filtering that down to one state client-side
+        # left most states (and cities like Coimbatore) with almost
+        # nothing. Geocoding "state, country" instead scopes the whole
+        # search to that state, so a state filter gets its own real
+        # sample instead of table scraps from the country-wide one.
+        geo_text = f"{state}, {country}" if state else country
+
         geo_url = (
             "https://api.geoapify.com/v1/geocode/search"
-            f"?text={country}"
+            f"?text={geo_text}"
             f"&apiKey={API_KEY}"
         )
 
