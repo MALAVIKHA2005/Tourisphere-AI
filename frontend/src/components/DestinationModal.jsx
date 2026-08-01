@@ -5,6 +5,7 @@ import { fetchHotels } from "../services/hotelService";
 import { fetchExchangeRates } from "../services/currencyService";
 import { fetchRoute } from "../services/routeService";
 import { fetchLifestyle } from "../services/lifestyleService";
+import { fetchEducation } from "../services/educationService";
 
 const CURRENCY_SYMBOLS = { INR: "₹", USD: "$", EUR: "€", GBP: "£", JPY: "¥" };
 
@@ -13,6 +14,12 @@ const LIFESTYLE_TABS = [
   { key: "nightlife", label: "🍸 Nightlife" },
   { key: "entertainment", label: "🎬 Entertainment" },
   { key: "culture", label: "🖼️ Culture" },
+];
+
+const EDUCATION_TABS = [
+  { key: "university", label: "🎓 Universities" },
+  { key: "college", label: "📘 Colleges" },
+  { key: "school", label: "🏫 Schools" },
 ];
 
 const formatDuration = (minutes) => {
@@ -40,6 +47,9 @@ const DestinationModal = ({ destination, onClose }) => {
   const [lifestyle, setLifestyle] = useState(null);
   const [loadingLifestyle, setLoadingLifestyle] = useState(false);
   const [lifestyleTab, setLifestyleTab] = useState("shopping");
+  const [education, setEducation] = useState(null);
+  const [loadingEducation, setLoadingEducation] = useState(false);
+  const [educationTab, setEducationTab] = useState("university");
 
   useEffect(() => {
     fetchExchangeRates().then(setExchangeRates);
@@ -94,6 +104,14 @@ const DestinationModal = ({ destination, onClose }) => {
     fetchLifestyle(destination.city || destination.name, destination.country)
       .then(setLifestyle)
       .finally(() => setLoadingLifestyle(false));
+
+    setEducation(null);
+    setEducationTab("university");
+    setLoadingEducation(true);
+
+    fetchEducation(destination.city || destination.name, destination.country)
+      .then(setEducation)
+      .finally(() => setLoadingEducation(false));
   }, [destination]);
 
   if (!destination) return null;
@@ -376,6 +394,61 @@ const DestinationModal = ({ destination, onClose }) => {
             {!loadingLifestyle && lifestyle?.[lifestyleTab]?.length > 0 && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {lifestyle[lifestyleTab].map((place, i) => (
+                  <div
+                    key={i}
+                    className="bg-gray-50 rounded-xl p-3 hover:shadow-md transition-shadow"
+                  >
+                    <p className="font-semibold">{place.name}</p>
+                    {place.address && (
+                      <p className="text-xs text-gray-400 mt-1">{place.address}</p>
+                    )}
+                    {place.latitude && place.longitude && (
+                      <a
+                        href={`https://www.google.com/maps?q=${place.latitude},${place.longitude}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-orange-600 hover:text-orange-700 hover:underline mt-1 inline-block font-medium"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        View on Map →
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-6">
+            <h3 className="text-lg font-bold mb-3">🎓 Education</h3>
+
+            <div className="flex flex-wrap gap-2 mb-3">
+              {EDUCATION_TABS.map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setEducationTab(tab.key)}
+                  className={`text-xs px-3 py-1 rounded-full border transition-all ${
+                    educationTab === tab.key
+                      ? "bg-gradient-to-r from-orange-500 to-pink-500 text-white border-transparent shadow-sm"
+                      : "bg-white text-gray-600 border-gray-300 hover:border-orange-300"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {loadingEducation && (
+              <p className="text-sm text-gray-500">Finding institutions nearby...</p>
+            )}
+
+            {!loadingEducation && education?.[educationTab]?.length === 0 && (
+              <p className="text-sm text-gray-500">No data available for this area.</p>
+            )}
+
+            {!loadingEducation && education?.[educationTab]?.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {education[educationTab].map((place, i) => (
                   <div
                     key={i}
                     className="bg-gray-50 rounded-xl p-3 hover:shadow-md transition-shadow"
