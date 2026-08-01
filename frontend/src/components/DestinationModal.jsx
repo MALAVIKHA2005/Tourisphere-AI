@@ -3,8 +3,17 @@ import { fetchHotelPrice } from "../services/hotelPriceService";
 import { fetchRestaurants } from "../services/restaurantService";
 import { fetchHotels } from "../services/hotelService";
 import { fetchExchangeRates } from "../services/currencyService";
+import { fetchRoute } from "../services/routeService";
 
 const CURRENCY_SYMBOLS = { INR: "₹", USD: "$", EUR: "€", GBP: "£", JPY: "¥" };
+
+const formatDuration = (minutes) => {
+  const h = Math.floor(minutes / 60);
+  const m = Math.round(minutes % 60);
+
+  if (h === 0) return `${m}m`;
+  return `${h}h ${m}m`;
+};
 
 const DestinationModal = ({ destination, onClose }) => {
   const [hotelPrice, setHotelPrice] = useState(null);
@@ -16,6 +25,10 @@ const DestinationModal = ({ destination, onClose }) => {
   const [loadingHotels, setLoadingHotels] = useState(false);
   const [currency, setCurrency] = useState("USD");
   const [exchangeRates, setExchangeRates] = useState({ USD: 1 });
+  const [fromPlace, setFromPlace] = useState("");
+  const [routeMode, setRouteMode] = useState("drive");
+  const [route, setRoute] = useState(null);
+  const [loadingRoute, setLoadingRoute] = useState(false);
 
   useEffect(() => {
     fetchExchangeRates().then(setExchangeRates);
@@ -58,9 +71,29 @@ const DestinationModal = ({ destination, onClose }) => {
     fetchHotels(destination.city || destination.name, destination.country)
       .then(setHotels)
       .finally(() => setLoadingHotels(false));
+
+    setFromPlace("");
+    setRoute(null);
+    setRouteMode("drive");
   }, [destination]);
 
   if (!destination) return null;
+
+  const handleFindRoute = () => {
+    if (!fromPlace.trim()) return;
+
+    const toPlace =
+      destination.latitude && destination.longitude
+        ? `${destination.latitude},${destination.longitude}`
+        : `${destination.city || destination.name}, ${destination.country}`;
+
+    setLoadingRoute(true);
+    setRoute(null);
+
+    fetchRoute(fromPlace.trim(), toPlace, routeMode)
+      .then(setRoute)
+      .finally(() => setLoadingRoute(false));
+  };
 
   const costLabel = () => {
     if (loadingPrice) return "Checking live prices...";
@@ -210,6 +243,70 @@ const DestinationModal = ({ destination, onClose }) => {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-6">
+            <h3 className="text-lg font-bold mb-3">🚗 Getting There</h3>
+
+            <p className="text-xs text-gray-400 mb-3">
+              Real road distance &amp; time via routing -- no free source exists for
+              real flight/train/bus fares, so this covers road trips only. Cost is a
+              rough per-km estimate, not a live price.
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-2 mb-3">
+              <input
+                type="text"
+                value={fromPlace}
+                onChange={(e) => setFromPlace(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleFindRoute()}
+                placeholder="Starting city or place..."
+                className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all"
+              />
+
+              <select
+                value={routeMode}
+                onChange={(e) => setRouteMode(e.target.value)}
+                className="text-sm border border-gray-200 rounded-xl px-2 py-2 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-orange-400"
+              >
+                <option value="drive">🚗 Drive</option>
+                <option value="bicycle">🚴 Bicycle</option>
+              </select>
+
+              <button
+                onClick={handleFindRoute}
+                className="bg-gradient-to-r from-orange-500 to-pink-500 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-sm hover:shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all"
+              >
+                Find Route
+              </button>
+            </div>
+
+            {loadingRoute && (
+              <p className="text-sm text-gray-500">Calculating route...</p>
+            )}
+
+            {!loadingRoute && route && !route.available && (
+              <p className="text-sm text-gray-500">
+                Couldn't find a road route between those two places.
+              </p>
+            )}
+
+            {!loadingRoute && route?.available && (
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-gray-50 rounded-xl p-3 text-center">
+                  <p className="text-xs uppercase tracking-wide text-gray-400">Distance</p>
+                  <p className="font-semibold">{route.distance_km} km</p>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-3 text-center">
+                  <p className="text-xs uppercase tracking-wide text-gray-400">Travel Time</p>
+                  <p className="font-semibold">{formatDuration(route.duration_minutes)}</p>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-3 text-center">
+                  <p className="text-xs uppercase tracking-wide text-gray-400">Est. Cost</p>
+                  <p className="font-semibold">{convertPrice(route.estimated_cost_usd)}</p>
+                </div>
               </div>
             )}
           </div>

@@ -31,6 +31,7 @@ Live hotel pricing is powered by [Xotelo](https://xotelo.com/) via RapidAPI (Ama
 - Nearby Restaurant Recommendations (Geoapify-powered, per destination)
 - Hotel Search with real live pricing per provider (Xotelo-powered, per destination)
 - Popular Dishes per country (curated reference data) on destination cards
+- Getting There: real road distance/time between any two places (Geoapify routing), per destination -- flights/trains/buses have no honest free data source, so this covers road trips only
 
 ---
 
@@ -46,7 +47,7 @@ Live hotel pricing is powered by [Xotelo](https://xotelo.com/) via RapidAPI (Ama
 | Phase 6 | Authentication | ✅ Completed |
 | Phase 7 | Food & Restaurant | ✅ Completed |
 | Phase 8 | Hotels | ✅ Completed |
-| Phase 9 | Transport | ⏳ Planned |
+| Phase 9 | Transport (road routes only -- no free flight/train/bus fare data exists) | ✅ Completed |
 | Phase 10 | Lifestyle | ⏳ Planned |
 | Phase 11 | Education | ⏳ Planned |
 | Phase 12 | Relocation | ⏳ Planned |
