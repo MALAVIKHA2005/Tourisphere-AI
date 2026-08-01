@@ -68,11 +68,14 @@ def _fetch_restaurants(city, country):
         # -----------------------------
         # STEP 2 : Fetch nearby restaurants
         # -----------------------------
+        # Over-fetch because some OSM points have no name tag at all --
+        # those get filtered out below, so asking for exactly
+        # RESTAURANT_SAMPLE_SIZE would leave the list short.
         places_url = (
             "https://api.geoapify.com/v2/places"
             "?categories=catering.restaurant"
             f"&filter={location_filter}"
-            f"&limit={RESTAURANT_SAMPLE_SIZE}"
+            f"&limit={RESTAURANT_SAMPLE_SIZE * 2}"
             f"&apiKey={API_KEY}"
         )
 
@@ -84,6 +87,10 @@ def _fetch_restaurants(city, country):
         if "features" in places_data:
             for item in places_data["features"]:
                 p = item["properties"]
+                name = p.get("name")
+
+                if not name:
+                    continue
 
                 cuisine = "Restaurant"
                 for category in p.get("categories", []):
@@ -93,7 +100,7 @@ def _fetch_restaurants(city, country):
 
                 restaurants.append(
                     {
-                        "name": p.get("name", "Unknown"),
+                        "name": name,
                         "cuisine": cuisine,
                         "address": p.get("formatted") or p.get("address_line2") or "",
                         "openingHours": p.get("opening_hours"),
@@ -101,6 +108,9 @@ def _fetch_restaurants(city, country):
                         "longitude": p.get("lon"),
                     }
                 )
+
+                if len(restaurants) >= RESTAURANT_SAMPLE_SIZE:
+                    break
 
         return restaurants
 
