@@ -35,6 +35,7 @@ Live hotel pricing is powered by [Xotelo](https://xotelo.com/) via RapidAPI (Ama
 - Lifestyle: real Shopping, Nightlife, Entertainment & Culture spots nearby (Geoapify-powered, per destination)
 - Education: real Universities, Colleges & Schools nearby (Geoapify-powered, per destination) -- course catalogues and tuition costs skipped, no free source exists
 - Popularity: real Wikipedia monthly page views per destination (no honest free per-city Safety Score exists anywhere, so it was removed rather than faked; Family Score replaced with a real count of nearby parks/playgrounds/zoos)
+- Best Months: derived from real historical climate data (Open-Meteo, 3 years of daily temperature/rainfall per destination) instead of a curator's guess or a flat Oct/Nov/Dec on every live-searched result
 
 ---
 

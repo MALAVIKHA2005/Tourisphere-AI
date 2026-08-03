@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 
 from app.services.image_service import get_place_image
 from app.services.popularity_service import get_popularity
+from app.services.climate_service import get_best_months
 
 load_dotenv()
 
@@ -214,11 +215,10 @@ def _fetch_places(country, state=None, city=None):
                         "Nature"
                     ],
 
-                    "bestMonths": [
-                        "October",
-                        "November",
-                        "December"
-                    ],
+                    # Real climate data (Open-Meteo), attached in
+                    # parallel below -- not the flat Oct/Nov/Dec every
+                    # dynamic card used to carry.
+                    "bestMonths": None,
 
                     "suitableFor": [
                         "Solo",
@@ -229,15 +229,29 @@ def _fetch_places(country, state=None, city=None):
 
                 places.append(destination)
 
-        # Fetch real Wikipedia popularity for every place in parallel --
-        # sequentially, up to 40 extra network round-trips per search
-        # would be far too slow.
+        # Fetch real Wikipedia popularity and real climate-derived Best
+        # Months for every place in parallel -- sequentially, up to 40
+        # extra network round-trips per search would be far too slow.
+        # Best Months uses each place's own already-known lat/lon, so it
+        # doesn't need a second geocode call. Kept in separate pools with
+        # different worker counts -- Open-Meteo's archive call is a much
+        # heavier request than Wikipedia's, and bundling both onto 20
+        # workers meant up to 20 of those heavy calls firing at once,
+        # which timed out often enough to matter.
         if places:
             def _attach_popularity(place):
                 place["popularity"] = get_popularity(place["name"], place["city"])
 
+            def _attach_best_months(place):
+                place["bestMonths"] = get_best_months(
+                    place["city"], lat=place["latitude"], lon=place["longitude"]
+                )
+
             with ThreadPoolExecutor(max_workers=20) as pool:
                 pool.map(_attach_popularity, places)
+
+            with ThreadPoolExecutor(max_workers=6) as pool:
+                pool.map(_attach_best_months, places)
 
         print(f"Dynamic Places Found: {len(places)}")
 
