@@ -119,12 +119,24 @@ function App() {
             Segmentation
           </button>
 
-          <button className={navButtonClass(false)}>
+          <button
+            disabled
+            className="w-full flex items-center justify-between px-4 py-3 rounded-xl font-medium text-gray-300 cursor-not-allowed"
+          >
             Sentiment
+            <span className="text-xs bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full">
+              Soon
+            </span>
           </button>
 
-          <button className={navButtonClass(false)}>
+          <button
+            disabled
+            className="w-full flex items-center justify-between px-4 py-3 rounded-xl font-medium text-gray-300 cursor-not-allowed"
+          >
             Dataset
+            <span className="text-xs bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full">
+              Soon
+            </span>
           </button>
 
         </div>
