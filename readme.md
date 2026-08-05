@@ -37,6 +37,7 @@ Live hotel pricing is powered by [Xotelo](https://xotelo.com/) via RapidAPI (Ama
 - Popularity: real Wikipedia monthly page views per destination (no honest free per-city Safety Score exists anywhere, so it was removed rather than faked; Family Score replaced with a real count of nearby parks/playgrounds/zoos)
 - Best Months: derived from real historical climate data (Open-Meteo, 3 years of daily temperature/rainfall per destination) instead of a curator's guess or a flat Oct/Nov/Dec on every live-searched result
 - Essential Services: real Healthcare, Supermarkets, Banking & Public Transport nearby (Geoapify-powered, per destination) -- housing/real-estate prices, cost of living index and job market data all have no honest free source, so Phase 12 covers this instead
+- AI Recommendation Engine: content-based similarity ("You Might Also Like" on every destination, "Recommended For You" from real favorites/travel history) using shared interests, climate, budget and country -- a transparent, documented formula over real stored attributes, not a trained model and not a fake score
 
 ---
 
@@ -56,7 +57,7 @@ Live hotel pricing is powered by [Xotelo](https://xotelo.com/) via RapidAPI (Ama
 | Phase 10 | Lifestyle (Shopping, Nightlife, Entertainment, Culture -- Events skipped, no free source) | ✅ Completed |
 | Phase 11 | Education (Universities, Colleges, Schools -- Courses & Education Costs skipped, no free source) | ✅ Completed |
 | Phase 12 | Relocation (Essential Services -- Housing/Cost of Living/Jobs skipped, no free source) | ✅ Completed |
-| Phase 13 | AI Recommendation Engine | ⏳ Planned |
+| Phase 13 | AI Recommendation Engine (content-based similarity -- no training data needed) | ✅ Completed |
 | Phase 14 | Forecasting | ⏳ Planned |
 | Phase 15 | User Segmentation | ⏳ Planned |
 | Phase 16 | Sentiment Analysis | ⏳ Planned |

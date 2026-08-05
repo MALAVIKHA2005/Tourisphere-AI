@@ -7,6 +7,7 @@ import { fetchRoute } from "../services/routeService";
 import { fetchLifestyle } from "../services/lifestyleService";
 import { fetchEducation } from "../services/educationService";
 import { fetchEssentialServices } from "../services/essentialServicesService";
+import { fetchSimilarDestinations } from "../services/recommendationEngineService";
 
 const CURRENCY_SYMBOLS = { INR: "₹", USD: "$", EUR: "€", GBP: "£", JPY: "¥" };
 
@@ -38,7 +39,7 @@ const formatDuration = (minutes) => {
   if (h === 0) return `${m}m`;
   return `${h}h ${m}m`;
 };
-const DestinationModal = ({ destination, onClose }) => {
+const DestinationModal = ({ destination, onClose, onSelectDestination }) => {
   const [hotelPrice, setHotelPrice] = useState(null);
   const [loadingPrice, setLoadingPrice] = useState(false);
   const [restaurants, setRestaurants] = useState([]);
@@ -61,6 +62,8 @@ const DestinationModal = ({ destination, onClose }) => {
   const [essentialServices, setEssentialServices] = useState(null);
   const [loadingEssentialServices, setLoadingEssentialServices] = useState(false);
   const [essentialServicesTab, setEssentialServicesTab] = useState("healthcare");
+  const [similarDestinations, setSimilarDestinations] = useState([]);
+  const [loadingSimilar, setLoadingSimilar] = useState(false);
 
   useEffect(() => {
     fetchExchangeRates().then(setExchangeRates);
@@ -151,6 +154,13 @@ const DestinationModal = ({ destination, onClose }) => {
         if (firstNonEmpty) setEssentialServicesTab(firstNonEmpty.key);
       })
       .finally(() => setLoadingEssentialServices(false));
+
+    setSimilarDestinations([]);
+    setLoadingSimilar(true);
+
+    fetchSimilarDestinations(destination, 4)
+      .then(setSimilarDestinations)
+      .finally(() => setLoadingSimilar(false));
   }, [destination]);
 
   if (!destination) return null;
@@ -657,6 +667,66 @@ const DestinationModal = ({ destination, onClose }) => {
                     ))}
                 </div>
               </>
+            )}
+          </div>
+
+          <div className="mt-6">
+            <h3 className="text-lg font-bold mb-3">✨ You Might Also Like</h3>
+
+            <p className="text-xs text-gray-400 mb-3">
+              Real similarity based on shared interests, climate, budget and
+              country -- not a trained model, just transparent matching.
+            </p>
+
+            {loadingSimilar && (
+              <p className="text-sm text-gray-500">Finding similar destinations...</p>
+            )}
+
+            {!loadingSimilar && similarDestinations.length === 0 && (
+              <p className="text-sm text-gray-500">No similar destinations found.</p>
+            )}
+
+            {!loadingSimilar && similarDestinations.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {similarDestinations.map((place, i) => (
+                  <div
+                    key={i}
+                    onClick={() => onSelectDestination && onSelectDestination(place)}
+                    className="bg-gray-50 rounded-xl overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+                  >
+                    {place.image && (
+                      <img
+                        src={place.image}
+                        alt={place.name}
+                        className="w-full h-24 object-cover"
+                      />
+                    )}
+                    <div className="p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="font-semibold">{place.name}</p>
+                        <span className="text-xs font-bold text-orange-600 whitespace-nowrap">
+                          {place.similarityScore}% similar
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-1">
+                        {[place.state, place.country].filter(Boolean).join(", ")}
+                      </p>
+                      {place.matchReasons?.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {place.matchReasons.map((reason) => (
+                            <span
+                              key={reason}
+                              className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full"
+                            >
+                              {reason}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 

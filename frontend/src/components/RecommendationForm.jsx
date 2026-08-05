@@ -24,6 +24,7 @@ import { fetchDishes } from "../services/dishService";
 import { fetchStates } from "../services/stateSearchService";
 import DestinationModal from "./DestinationModal";
 import AnalyticsCharts from "./AnalyticsCharts";
+import { fetchRecommendedForYou } from "../services/recommendationEngineService";
 
 const RecommendationForm = () => {
   const [countryQuery, setCountryQuery] = useState("");
@@ -54,6 +55,7 @@ const RecommendationForm = () => {
   const [loadingStateResults, setLoadingStateResults] = useState(false);
   const [cityInput, setCityInput] = useState("");
   const [city, setCity] = useState("");
+  const [recommendedForYou, setRecommendedForYou] = useState([]);
 
   const isFavorited = (destination) => {
     const key = getDestinationKey(destination);
@@ -254,6 +256,13 @@ useEffect(() => {
 
   loadFavorites();
 }, []);
+
+// Refetches whenever favorites change (including the initial load) so
+// "Recommended For You" reflects real engagement as soon as it exists,
+// not just on page load.
+useEffect(() => {
+  fetchRecommendedForYou(8).then(setRecommendedForYou);
+}, [favorites]);
 
 useEffect(() => {
   if (countryQuery.trim().length < 2) {
@@ -615,6 +624,67 @@ useEffect(() => {
         </button>
 
       </div>
+{/* RECOMMENDED FOR YOU */}
+
+{recommendedForYou.length > 0 && (
+  <div className="mb-8">
+    <h2 className="text-2xl font-bold mb-4">
+      ✨ Recommended For You
+    </h2>
+
+    <p className="text-sm text-gray-500 mb-4">
+      Based on your real favorites and travel history -- not a generic list.
+    </p>
+
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {recommendedForYou.map((place, index) => (
+        <div
+          key={index}
+          onClick={() => {
+            saveTravelHistory(place);
+            setSelectedDestination(place);
+          }}
+          className="group bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
+        >
+          {place.image && (
+            <img
+              src={place.image}
+              alt={place.name}
+              className="h-32 w-full object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+          )}
+
+          <div className="p-4">
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="font-bold text-lg">{place.name}</h3>
+              <span className="text-xs font-bold text-orange-600 whitespace-nowrap">
+                {place.similarityScore}%
+              </span>
+            </div>
+
+            <p className="text-gray-500 text-sm">
+              {[place.state, place.country].filter(Boolean).join(", ")}
+            </p>
+
+            {place.matchReasons?.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-2">
+                {place.matchReasons.map((reason) => (
+                  <span
+                    key={reason}
+                    className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full"
+                  >
+                    {reason}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+)}
+
 {/* RECENTLY VIEWED */}
 
 {travelHistory.length > 0 && (
@@ -800,6 +870,10 @@ useEffect(() => {
         onClose={() =>
           setSelectedDestination(null)
         }
+        onSelectDestination={(place) => {
+          saveTravelHistory(place);
+          setSelectedDestination(place);
+        }}
       />
 
     </div>
