@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import Dashboard from "./pages/Dashboard";
 import Recommendation from "./pages/Recommendation";
 import MyActivity from "./pages/MyActivity";
+import Forecasting from "./pages/Forecasting";
+import Segmentation from "./pages/Segmentation";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Privacy from "./pages/Privacy";
@@ -103,11 +105,17 @@ function App() {
             My Activity
           </button>
 
-          <button className={navButtonClass(false)}>
+          <button
+            onClick={() => setActivePage("forecasting")}
+            className={navButtonClass(activePage === "forecasting")}
+          >
             Forecasting
           </button>
 
-          <button className={navButtonClass(false)}>
+          <button
+            onClick={() => setActivePage("segmentation")}
+            className={navButtonClass(activePage === "segmentation")}
+          >
             Segmentation
           </button>
 
@@ -137,6 +145,10 @@ function App() {
         {activePage === "recommendation" && <Recommendation />}
 
         {activePage === "myActivity" && <MyActivity />}
+
+        {activePage === "forecasting" && <Forecasting />}
+
+        {activePage === "segmentation" && <Segmentation />}
 
         {activePage === "login" && (
           <Login

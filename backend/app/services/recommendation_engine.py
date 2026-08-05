@@ -59,7 +59,7 @@ def similarity(dest_a, dest_b):
     )
 
 
-def _shared_reasons(dest_a, dest_b):
+def shared_reasons(dest_a, dest_b):
     """Human-readable reasons for a match -- so the UI can show *why*
     instead of just a bare percentage."""
 
@@ -100,7 +100,7 @@ def get_similar_destinations(destination, limit=4):
             {
                 **candidate,
                 "similarityScore": round(score * 100),
-                "matchReasons": _shared_reasons(destination, candidate),
+                "matchReasons": shared_reasons(destination, candidate),
             }
         )
 
@@ -158,6 +158,35 @@ def _history_to_destination_shape(history_entry):
     }
 
 
+def get_user_engagement(user_id):
+    """Real favorites + travel history, reshaped to a common destination
+    shape -- the raw material both recommendations and segmentation are
+    built from."""
+
+    favorites = get_favorites(user_id)
+    history = get_travel_history(50, user_id)
+
+    return [f["destination"] for f in favorites] + [
+        _history_to_destination_shape(h) for h in history
+    ]
+
+
+def get_user_profile(user_id):
+    """
+    Real profile built from this user's real favorites + travel history,
+    or None if they have no engagement yet -- shared by personalized
+    recommendations and segmentation so both read the exact same real
+    signal, not two slightly different ideas of "this user's taste."
+    """
+
+    engaged = get_user_engagement(user_id)
+
+    if not engaged:
+        return None
+
+    return _build_profile(engaged)
+
+
 def get_recommended_for_you(user_id, limit=8):
     """
     Personalized recommendations built from this user's *real* favorites
@@ -165,12 +194,7 @@ def get_recommended_for_you(user_id, limit=8):
     they have no engagement yet rather than faking a "popular" default.
     """
 
-    favorites = get_favorites(user_id)
-    history = get_travel_history(50, user_id)
-
-    engaged = [f["destination"] for f in favorites] + [
-        _history_to_destination_shape(h) for h in history
-    ]
+    engaged = get_user_engagement(user_id)
 
     if not engaged:
         return []
@@ -195,7 +219,7 @@ def get_recommended_for_you(user_id, limit=8):
             {
                 **candidate,
                 "similarityScore": round(score * 100),
-                "matchReasons": _shared_reasons(profile, candidate),
+                "matchReasons": shared_reasons(profile, candidate),
             }
         )
 
