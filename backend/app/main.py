@@ -24,6 +24,7 @@ from app.routes.states import router as states_router
 from app.routes.education import router as education_router
 from app.routes.essential_services import router as essential_services_router
 from app.routes.recommendation_engine import router as recommendation_engine_router
+from app.routes.forecast import router as forecast_router
 from app.routes.destinations import (
     router as destinations_router
 )
@@ -75,6 +76,7 @@ app.include_router(states_router)
 app.include_router(education_router)
 app.include_router(essential_services_router)
 app.include_router(recommendation_engine_router)
+app.include_router(forecast_router)
 @app.get("/")
 def root():
     return {

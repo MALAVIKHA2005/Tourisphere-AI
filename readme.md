@@ -38,6 +38,7 @@ Live hotel pricing is powered by [Xotelo](https://xotelo.com/) via RapidAPI (Ama
 - Best Months: derived from real historical climate data (Open-Meteo, 3 years of daily temperature/rainfall per destination) instead of a curator's guess or a flat Oct/Nov/Dec on every live-searched result
 - Essential Services: real Healthcare, Supermarkets, Banking & Public Transport nearby (Geoapify-powered, per destination) -- housing/real-estate prices, cost of living index and job market data all have no honest free source, so Phase 12 covers this instead
 - AI Recommendation Engine: content-based similarity ("You Might Also Like" on every destination, "Recommended For You" from real favorites/travel history) using shared interests, climate, budget and country -- a transparent, documented formula over real stored attributes, not a trained model and not a fake score
+- Interest Trend Forecasting: no free source exists for real tourist-arrival numbers, so this uses real multi-year Wikipedia search-interest history per destination (median year-over-year growth) projected 3 months forward -- explicitly labeled as a search-interest proxy, not a visitor forecast. Required tracking down and working around three separate real bugs/quirks in Wikimedia's own pageviews API (a multi-year span that 404s even though each year alone works; December's monthly total silently reporting only day 1's count; occasional huge single-day traffic spikes, verified as real recorded data rather than corruption)
 
 ---
 
@@ -58,7 +59,7 @@ Live hotel pricing is powered by [Xotelo](https://xotelo.com/) via RapidAPI (Ama
 | Phase 11 | Education (Universities, Colleges, Schools -- Courses & Education Costs skipped, no free source) | ✅ Completed |
 | Phase 12 | Relocation (Essential Services -- Housing/Cost of Living/Jobs skipped, no free source) | ✅ Completed |
 | Phase 13 | AI Recommendation Engine (content-based similarity -- no training data needed) | ✅ Completed |
-| Phase 14 | Forecasting | ⏳ Planned |
+| Phase 14 | Forecasting (real Wikipedia search-interest trend, not visitor-count data -- none exists free) | ✅ Completed |
 | Phase 15 | User Segmentation | ⏳ Planned |
 | Phase 16 | Sentiment Analysis | ⏳ Planned |
 | Phase 17 | RAG AI Assistant | ⏳ Planned |
