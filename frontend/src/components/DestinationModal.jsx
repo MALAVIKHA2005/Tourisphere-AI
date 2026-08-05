@@ -6,6 +6,7 @@ import { fetchExchangeRates } from "../services/currencyService";
 import { fetchRoute } from "../services/routeService";
 import { fetchLifestyle } from "../services/lifestyleService";
 import { fetchEducation } from "../services/educationService";
+import { fetchEssentialServices } from "../services/essentialServicesService";
 
 const CURRENCY_SYMBOLS = { INR: "₹", USD: "$", EUR: "€", GBP: "£", JPY: "¥" };
 
@@ -21,6 +22,13 @@ const EDUCATION_TABS = [
   { key: "university", label: "🎓 Universities" },
   { key: "college", label: "📘 Colleges" },
   { key: "school", label: "🏫 Schools" },
+];
+
+const ESSENTIAL_SERVICES_TABS = [
+  { key: "healthcare", label: "🏥 Healthcare" },
+  { key: "supermarket", label: "🛒 Supermarkets" },
+  { key: "banking", label: "🏦 Banking" },
+  { key: "transport", label: "🚌 Public Transport" },
 ];
 
 const formatDuration = (minutes) => {
@@ -50,6 +58,9 @@ const DestinationModal = ({ destination, onClose }) => {
   const [education, setEducation] = useState(null);
   const [loadingEducation, setLoadingEducation] = useState(false);
   const [educationTab, setEducationTab] = useState("university");
+  const [essentialServices, setEssentialServices] = useState(null);
+  const [loadingEssentialServices, setLoadingEssentialServices] = useState(false);
+  const [essentialServicesTab, setEssentialServicesTab] = useState("healthcare");
 
   useEffect(() => {
     fetchExchangeRates().then(setExchangeRates);
@@ -124,6 +135,22 @@ const DestinationModal = ({ destination, onClose }) => {
         if (firstNonEmpty) setEducationTab(firstNonEmpty.key);
       })
       .finally(() => setLoadingEducation(false));
+
+    setEssentialServices(null);
+    setEssentialServicesTab("healthcare");
+    setLoadingEssentialServices(true);
+
+    fetchEssentialServices(destination.city || destination.name, destination.country)
+      .then((data) => {
+        setEssentialServices(data);
+
+        const firstNonEmpty = ESSENTIAL_SERVICES_TABS.find(
+          (tab) => data[tab.key]?.length > 0
+        );
+
+        if (firstNonEmpty) setEssentialServicesTab(firstNonEmpty.key);
+      })
+      .finally(() => setLoadingEssentialServices(false));
   }, [destination]);
 
   if (!destination) return null;
@@ -484,6 +511,67 @@ const DestinationModal = ({ destination, onClose }) => {
             {!loadingEducation && education?.[educationTab]?.length > 0 && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {education[educationTab].map((place, i) => (
+                  <div
+                    key={i}
+                    className="bg-gray-50 rounded-xl p-3 hover:shadow-md transition-shadow"
+                  >
+                    <p className="font-semibold">{place.name}</p>
+                    {place.address && (
+                      <p className="text-xs text-gray-400 mt-1">{place.address}</p>
+                    )}
+                    {place.latitude && place.longitude && (
+                      <a
+                        href={`https://www.google.com/maps?q=${place.latitude},${place.longitude}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-orange-600 hover:text-orange-700 hover:underline mt-1 inline-block font-medium"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        View on Map →
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-6">
+            <h3 className="text-lg font-bold mb-3">🏘️ Essential Services</h3>
+
+            <p className="text-xs text-gray-400 mb-3">
+              What's actually here for daily living -- housing prices and cost of
+              living have no honest free data source, so this covers real nearby
+              services instead.
+            </p>
+
+            <div className="flex flex-wrap gap-2 mb-3">
+              {ESSENTIAL_SERVICES_TABS.map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setEssentialServicesTab(tab.key)}
+                  className={`text-xs px-3 py-1 rounded-full border transition-all ${
+                    essentialServicesTab === tab.key
+                      ? "bg-gradient-to-r from-orange-500 to-pink-500 text-white border-transparent shadow-sm"
+                      : "bg-white text-gray-600 border-gray-300 hover:border-orange-300"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {loadingEssentialServices && (
+              <p className="text-sm text-gray-500">Finding services nearby...</p>
+            )}
+
+            {!loadingEssentialServices && essentialServices?.[essentialServicesTab]?.length === 0 && (
+              <p className="text-sm text-gray-500">No data available for this area.</p>
+            )}
+
+            {!loadingEssentialServices && essentialServices?.[essentialServicesTab]?.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {essentialServices[essentialServicesTab].map((place, i) => (
                   <div
                     key={i}
                     className="bg-gray-50 rounded-xl p-3 hover:shadow-md transition-shadow"

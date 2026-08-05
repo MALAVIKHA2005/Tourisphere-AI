@@ -22,6 +22,7 @@ from app.routes.transport import router as transport_router
 from app.routes.lifestyle import router as lifestyle_router
 from app.routes.states import router as states_router
 from app.routes.education import router as education_router
+from app.routes.essential_services import router as essential_services_router
 from app.routes.destinations import (
     router as destinations_router
 )
@@ -71,6 +72,7 @@ app.include_router(transport_router)
 app.include_router(lifestyle_router)
 app.include_router(states_router)
 app.include_router(education_router)
+app.include_router(essential_services_router)
 @app.get("/")
 def root():
     return {
