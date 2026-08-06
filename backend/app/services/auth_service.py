@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 
 from app.database.mongodb import (
     favorites_collection,
+    reviews_collection,
     search_history_collection,
     travel_history_collection,
     users_collection,
@@ -106,6 +107,9 @@ def export_user_data(user: dict) -> dict:
         "favorites": list(
             favorites_collection.find({"user_id": user_id}, {"_id": 0})
         ),
+        "reviews": list(
+            reviews_collection.find({"user_id": user_id}, {"_id": 0})
+        ),
     }
 
 
@@ -115,4 +119,5 @@ def delete_user_account(user_id: str):
     travel_history_collection.delete_many({"user_id": user_id})
     search_history_collection.delete_many({"user_id": user_id})
     favorites_collection.delete_many({"user_id": user_id})
+    reviews_collection.delete_many({"user_id": user_id})
     users_collection.delete_one({"_id": ObjectId(user_id)})

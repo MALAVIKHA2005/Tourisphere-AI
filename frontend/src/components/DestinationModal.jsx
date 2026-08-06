@@ -10,6 +10,7 @@ import { fetchEssentialServices } from "../services/essentialServicesService";
 import { fetchSimilarDestinations } from "../services/recommendationEngineService";
 import { fetchInterestTrend } from "../services/forecastService";
 import InterestTrendChart from "./InterestTrendChart";
+import ReviewsSection from "./ReviewsSection";
 
 const CURRENCY_SYMBOLS = { INR: "₹", USD: "$", EUR: "€", GBP: "£", JPY: "¥" };
 
@@ -312,6 +313,8 @@ const DestinationModal = ({ destination, onClose, onSelectDestination }) => {
               </p>
             )}
           </div>
+
+          <ReviewsSection destination={destination} />
 
           <div className="mt-6">
             <InterestTrendChart trend={interestTrend} loading={loadingInterestTrend} />
