@@ -27,6 +27,7 @@ from app.routes.recommendation_engine import router as recommendation_engine_rou
 from app.routes.forecast import router as forecast_router
 from app.routes.segmentation import router as segmentation_router
 from app.routes.reviews import router as reviews_router
+from app.routes.sentiment import router as sentiment_router
 from app.routes.destinations import (
     router as destinations_router
 )
@@ -81,6 +82,7 @@ app.include_router(recommendation_engine_router)
 app.include_router(forecast_router)
 app.include_router(segmentation_router)
 app.include_router(reviews_router)
+app.include_router(sentiment_router)
 @app.get("/")
 def root():
     return {

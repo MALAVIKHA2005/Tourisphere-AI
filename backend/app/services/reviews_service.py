@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 from app.database.mongodb import reviews_collection
+from app.services.sentiment_service import analyze_text
 from app.utils.identity import get_destination_key
 
 
@@ -18,6 +19,7 @@ def add_review(destination: dict, rating: int, text: str, user_id: str, user_nam
                 "destination_name": destination.get("name"),
                 "rating": rating,
                 "text": text,
+                "sentiment": analyze_text(text),
                 "updated_at": datetime.now(timezone.utc),
             },
             "$setOnInsert": {

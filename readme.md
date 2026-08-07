@@ -40,7 +40,8 @@ Live hotel pricing is powered by [Xotelo](https://xotelo.com/) via RapidAPI (Ama
 - AI Recommendation Engine: content-based similarity ("You Might Also Like" on every destination, "Recommended For You" from real favorites/travel history) using shared interests, climate, budget and country -- a transparent, documented formula over real stored attributes, not a trained model and not a fake score
 - Interest Trend Forecasting: no free source exists for real tourist-arrival numbers, so this uses real multi-year Wikipedia search-interest history per destination (median year-over-year growth) projected 3 months forward -- explicitly labeled as a search-interest proxy, not a visitor forecast. Required tracking down and working around three separate real bugs/quirks in Wikimedia's own pageviews API (a multi-year span that 404s even though each year alone works; December's monthly total silently reporting only day 1's count; occasional huge single-day traffic spikes, verified as real recorded data rather than corruption). Now has its own page (sidebar "Forecasting", previously a dead button) with a destination picker
 - User Segmentation: not enough real users yet for clustering to mean anything, so each user's real profile (from their real favorites/travel history, reusing the recommendation engine's own similarity formula) is matched against a small set of named travel personas grounded in the catalogue's real interest/climate/budget vocabulary -- transparent rule-based classification, not a trained model, and honestly empty for users with no engagement yet. Sidebar "Segmentation" button (previously dead) now opens this
-- Traveler Reviews (destinations): signed-in users can leave a real 1-5 star rating + written review per destination (editable, one per user), shown on every destination's detail view with a live average rating -- this is groundwork for Phase 16 (Sentiment Analysis), which had no real review text to analyze until now
+- Traveler Reviews (destinations): signed-in users can leave a real 1-5 star rating + written review per destination (editable, one per user), shown on every destination's detail view with a live average rating
+- Sentiment Analysis: every real review's text is scored with VADER (a lexicon + rule-based sentiment analyzer, not a trained model -- no labeled training data exists for travel reviews here), computed once when the review is saved. Each review shows its own sentiment badge; a destination-level breakdown (Positive/Neutral/Negative, with "Mixed" for genuine ties rather than an arbitrary pick) lives on its own page (sidebar "Sentiment", previously a dead placeholder), honestly empty for destinations with no reviews yet
 
 ---
 
@@ -63,7 +64,7 @@ Live hotel pricing is powered by [Xotelo](https://xotelo.com/) via RapidAPI (Ama
 | Phase 13 | AI Recommendation Engine (content-based similarity -- no training data needed) | ✅ Completed |
 | Phase 14 | Forecasting (real Wikipedia search-interest trend, not visitor-count data -- none exists free) | ✅ Completed |
 | Phase 15 | User Segmentation (rule-based persona classification from real engagement -- not enough real users yet for clustering) | ✅ Completed |
-| Phase 16 | Sentiment Analysis (review collection now live -- classifier itself not yet built) | ⏳ Planned |
+| Phase 16 | Sentiment Analysis (real reviews scored with VADER, lexicon-based -- no training data exists to train a model) | ✅ Completed |
 | Phase 17 | RAG AI Assistant | ⏳ Planned |
 | Phase 18 | AI Trip Planner | ⏳ Planned |
 | Phase 19 | Booking System | ⏳ Planned |
@@ -105,12 +106,12 @@ Live hotel pricing is powered by [Xotelo](https://xotelo.com/) via RapidAPI (Ama
 - Tourism Data Analysis
 - Data Visualization
 
-## Advanced AI *(Planned)*
+## Advanced AI
 - Forecasting
 - User Segmentation
 - Sentiment Analysis
-- Retrieval-Augmented Generation (RAG)
-- Large Language Model (LLM) Integration
+- Retrieval-Augmented Generation (RAG) *(Planned)*
+- Large Language Model (LLM) Integration *(Planned)*
 
 ---
 
@@ -168,12 +169,8 @@ To build a scalable AI-powered travel platform that combines recommendation syst
 
 # 🔮 Future Enhancements
 
-- AI Recommendation Engine
 - AI Trip Planner
 - Intelligent Itinerary Generation
-- Forecasting Tourism Trends
-- Sentiment Analysis
-- User Segmentation
 - Government Tourism Analytics Dashboard
 - Booking System
 - Expense Tracking

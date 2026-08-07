@@ -28,6 +28,23 @@ const Stars = ({ rating }) => (
   </span>
 );
 
+const SENTIMENT_STYLES = {
+  positive: { emoji: "😊", label: "Positive", className: "bg-green-100 text-green-700" },
+  neutral: { emoji: "😐", label: "Neutral", className: "bg-gray-100 text-gray-600" },
+  negative: { emoji: "😞", label: "Negative", className: "bg-red-100 text-red-700" },
+};
+
+const SentimentBadge = ({ label }) => {
+  const style = SENTIMENT_STYLES[label];
+  if (!style) return null;
+
+  return (
+    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${style.className}`}>
+      {style.emoji} {style.label}
+    </span>
+  );
+};
+
 const ReviewsSection = ({ destination }) => {
   const [user, setUser] = useState(null);
   const [reviews, setReviews] = useState([]);
@@ -196,9 +213,12 @@ const ReviewsSection = ({ destination }) => {
 
                 <p className="text-sm text-gray-700 mt-1">{r.text}</p>
 
-                <p className="text-xs text-gray-400 mt-1">
-                  {new Date(r.updated_at).toLocaleDateString()}
-                </p>
+                <div className="flex items-center gap-2 mt-2">
+                  <p className="text-xs text-gray-400">
+                    {new Date(r.updated_at).toLocaleDateString()}
+                  </p>
+                  {r.sentiment?.label && <SentimentBadge label={r.sentiment.label} />}
+                </div>
               </div>
             ))}
           </div>
