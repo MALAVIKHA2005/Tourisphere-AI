@@ -19,9 +19,21 @@ HEADERS = {
 
 # Sampling a handful of hotels per city keeps this within the free tier's
 # 1,000 requests/month (1 search + up to HOTEL_SAMPLE_SIZE rate lookups per
-# city, cached hard afterwards).
+# city, cached hard afterwards). A 7-day TTL (rather than 24h) matters now
+# that the curated catalogue's Budget tier (see get_budget_tier) is
+# refreshed for all 23 destinations whenever it falls out of cache --
+# nightly hotel rates don't swing enough to need daily refreshing, and a
+# 24h TTL would mean that batch alone could burn through the monthly quota.
 HOTEL_SAMPLE_SIZE = 3
-CACHE_TTL_SECONDS = 24 * 60 * 60
+CACHE_TTL_SECONDS = 7 * 24 * 60 * 60
+
+# Thresholds a real live average nightly price (USD) is bucketed into --
+# the same cutoffs the frontend modal used to compute this independently
+# from its own hotel-price fetch. Centralized here now so the curated
+# catalogue's list-level Budget filter and the modal's Budget stat both
+# come from the exact same computation instead of silently diverging.
+BUDGET_LOW_MAX = 40
+BUDGET_MEDIUM_MAX = 100
 
 _price_cache = {}
 
@@ -154,6 +166,28 @@ def get_average_hotel_price(city, country):
     }
 
     return result
+
+
+def get_budget_tier(city, country):
+    """
+    Real "Low"/"Medium"/"High" cost tier derived from the same live
+    average hotel price get_average_hotel_price() already computes (and
+    caches) -- not a separate lookup. Returns None if no real price data
+    is available, rather than guessing.
+    """
+
+    price = get_average_hotel_price(city, country)
+
+    if not price.get("available"):
+        return None
+
+    average = price["average_price"]
+
+    if average < BUDGET_LOW_MAX:
+        return "Low"
+    if average <= BUDGET_MEDIUM_MAX:
+        return "Medium"
+    return "High"
 
 
 def get_hotels(city, country):
