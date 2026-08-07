@@ -5,6 +5,7 @@ import MyActivity from "./pages/MyActivity";
 import Forecasting from "./pages/Forecasting";
 import Segmentation from "./pages/Segmentation";
 import Sentiment from "./pages/Sentiment";
+import Dataset from "./pages/Dataset";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Privacy from "./pages/Privacy";
@@ -128,13 +129,10 @@ function App() {
           </button>
 
           <button
-            disabled
-            className="w-full flex items-center justify-between px-4 py-3 rounded-xl font-medium text-gray-300 cursor-not-allowed"
+            onClick={() => setActivePage("dataset")}
+            className={navButtonClass(activePage === "dataset")}
           >
             Dataset
-            <span className="text-xs bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full">
-              Soon
-            </span>
           </button>
 
         </div>
@@ -161,6 +159,8 @@ function App() {
         {activePage === "segmentation" && <Segmentation />}
 
         {activePage === "sentiment" && <Sentiment />}
+
+        {activePage === "dataset" && <Dataset />}
 
         {activePage === "login" && (
           <Login
