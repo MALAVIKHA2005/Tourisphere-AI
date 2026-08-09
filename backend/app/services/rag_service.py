@@ -2,6 +2,7 @@ import os
 import re
 from concurrent.futures import ThreadPoolExecutor
 
+import requests
 from groq import Groq
 
 from app.database.mongodb import destinations_collection
@@ -12,6 +13,7 @@ from app.services.reviews_service import get_reviews
 from app.utils.identity import get_destination_key
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+GEOAPIFY_API_KEY = os.getenv("GEOAPIFY_API_KEY")
 MODEL = "llama-3.3-70b-versatile"
 
 _client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
@@ -34,13 +36,34 @@ STOPWORDS = {
     "places", "destination", "destinations", "visit",
 }
 
+# Words that show up constantly in travel questions but aren't candidate
+# place names -- used only to narrow down what to try geocoding when the
+# curated catalogue has no real match, not for the retrieval scoring above.
+NON_PLACE_WORDS = STOPWORDS | {
+    "suggestion", "suggestions", "suggest", "planned", "plan", "planning",
+    "famous", "detail", "details", "well", "also", "here", "there",
+    "nature", "hill", "station", "photography", "beach", "culture",
+    "adventure", "luxury", "nightlife", "history", "family", "couple",
+    "friends", "solo", "cool", "warm", "tropical", "budget", "cheap",
+    "expensive", "climate", "weather", "review", "reviews", "rating",
+    "popular", "popularity", "recommend", "recommendation", "recommendations",
+}
+
+TEMPLE_WORDS = {"temple", "temples", "church", "churches", "mosque", "mosques", "shrine", "shrines"}
+
+VALID_GEOCODE_RESULT_TYPES = {"city", "island", "region", "county", "state", "amenity", "district"}
+
 SYSTEM_PROMPT = (
     "You are Tourisphere's travel assistant. Answer the traveler's question "
-    "using ONLY the real destination data given to you below -- never invent "
-    "facts, prices, ratings, popularity numbers, or reviews that aren't "
-    "explicitly present in it. If the provided data doesn't cover what's "
-    "asked, say so honestly and mention what real data IS available instead "
-    "of guessing. Keep answers concise and conversational."
+    "using ONLY the real data given to you below -- never invent facts, "
+    "prices, ratings, popularity numbers, or reviews that aren't explicitly "
+    "present in it. The data below is a SUBSET retrieved specifically for "
+    "this question out of a much larger real catalogue and live search -- "
+    "it is not the entirety of what this platform knows, so never claim you "
+    "'only have data on X' or that nothing else exists. If the provided data "
+    "doesn't cover what's asked, say so honestly for THIS question and "
+    "mention what real data IS available instead of guessing. Keep answers "
+    "concise and conversational."
 )
 
 
@@ -68,6 +91,10 @@ def retrieve_relevant(question, top_k=4):
     download, risky on a free-tier server) and not a trained classifier,
     just an honest word-overlap score, same spirit as the significant-word
     matching wikipedia_service.py already uses elsewhere in this codebase.
+
+    Returns (destinations, matched) -- matched is False when nothing in
+    the curated catalogue actually overlapped and the top-rated fallback
+    was used instead, so callers can tell a real match from a filler one.
     """
 
     destinations = list(destinations_collection.find({}, {"_id": 0}))
@@ -82,13 +109,96 @@ def retrieve_relevant(question, top_k=4):
     scored.sort(key=lambda item: item[0], reverse=True)
 
     if scored:
-        return [d for _, d in scored[:top_k]]
+        return [d for _, d in scored[:top_k]], True
 
-    # No keyword overlap at all (a vague/generic question) -- fall back to
-    # the catalogue's real highest-rated places so the assistant still has
-    # *some* real grounding, rather than an empty context.
+    # No keyword overlap at all -- fall back to the catalogue's real
+    # highest-rated places so there's still *some* real grounding.
     destinations.sort(key=lambda d: d.get("rating") or 0, reverse=True)
-    return destinations[:top_k]
+    return destinations[:top_k], False
+
+
+def _extract_place_candidates(question, max_candidates=3):
+    """
+    The curated catalogue only covers 23 destinations -- most real places
+    someone asks about (e.g. "Coimbatore") won't be in it at all. Rather
+    than pretend no data exists, pull out words that aren't generic travel
+    vocabulary and try geocoding them for a real live lookup instead.
+    """
+
+    words = re.findall(r"[a-z]+", (question or "").lower())
+    seen = []
+
+    for w in words:
+        if len(w) >= 3 and w not in NON_PLACE_WORDS and w not in seen:
+            seen.append(w)
+
+    return seen[:max_candidates]
+
+
+def _resolve_live_place(question):
+    if not GEOAPIFY_API_KEY:
+        return None
+
+    for candidate in _extract_place_candidates(question):
+        try:
+            response = requests.get(
+                "https://api.geoapify.com/v1/geocode/search",
+                params={"text": candidate, "apiKey": GEOAPIFY_API_KEY, "limit": 1},
+                timeout=8,
+            )
+            features = (response.json() or {}).get("features") or []
+
+            if not features:
+                continue
+
+            props = features[0]["properties"]
+
+            if props.get("result_type") not in VALID_GEOCODE_RESULT_TYPES:
+                continue
+
+            return {
+                "place_id": props.get("place_id"),
+                "name": props.get("city") or props.get("name") or candidate.title(),
+                "state": props.get("state"),
+                "country": props.get("country"),
+            }
+
+        except Exception as e:
+            print("RAG Geocode Error:", e)
+            continue
+
+    return None
+
+
+def _fetch_live_sights(place_id, question):
+    categories = "tourism.sights"
+
+    if TEMPLE_WORDS & set(re.findall(r"[a-z]+", (question or "").lower())):
+        categories += ",religion.place_of_worship"
+
+    try:
+        response = requests.get(
+            "https://api.geoapify.com/v2/places",
+            params={
+                "categories": categories,
+                "filter": f"place:{place_id}",
+                "limit": 8,
+                "apiKey": GEOAPIFY_API_KEY,
+            },
+            timeout=10,
+        )
+
+        names = []
+        for feature in (response.json() or {}).get("features", []):
+            name = feature["properties"].get("name")
+            if name:
+                names.append(name)
+
+        return names
+
+    except Exception as e:
+        print("RAG Live Sights Error:", e)
+        return []
 
 
 def _enrich(d):
@@ -108,11 +218,24 @@ def _enrich(d):
     return d
 
 
+def _location_header(d):
+    bits = [d.get("name")]
+
+    if d.get("city") and d.get("city") != d.get("name"):
+        bits.append(d["city"])
+    if d.get("state"):
+        bits.append(d["state"])
+    if d.get("country"):
+        bits.append(d["country"])
+
+    return "### " + ", ".join(b for b in bits if b)
+
+
 def _format_context(destinations):
     blocks = []
 
     for d in destinations:
-        lines = [f"### {d.get('name')}, {d.get('state') or ''} {d.get('country')}".strip()]
+        lines = [_location_header(d)]
         lines.append(f"Climate: {d.get('climate') or 'No data'}")
         lines.append(f"Budget tier (live avg hotel price/night): {d.get('budget') or 'No data'}")
         lines.append(
@@ -143,6 +266,27 @@ def _format_context(destinations):
     return "\n\n".join(blocks)
 
 
+def _format_live_context(place, sights):
+    bits = [place.get("name")]
+    if place.get("state"):
+        bits.append(place["state"])
+    if place.get("country"):
+        bits.append(place["country"])
+
+    lines = ["### " + ", ".join(b for b in bits if b)]
+    lines.append(
+        "(Live-searched real place, not part of the curated catalogue -- "
+        "so no climate/budget/popularity/review data exists for it here, "
+        "only real nearby points of interest from a live search.)"
+    )
+    lines.append(
+        "Real nearby points of interest (live search): "
+        + (", ".join(sights) if sights else "none found")
+    )
+
+    return "\n".join(lines)
+
+
 def ask(question, history=None):
     if not _client:
         return {
@@ -160,15 +304,41 @@ def ask(question, history=None):
     ]
     retrieval_query = " ".join(recent_user_turns + [question])
 
-    retrieved = retrieve_relevant(retrieval_query)
+    retrieved, matched = retrieve_relevant(retrieval_query)
+
+    # A category-specific ask (e.g. "temple details") can need a live
+    # supplement even when the curated catalogue *did* match something
+    # (e.g. Coimbatore matched via a destination's city field) -- the
+    # single curated entry for that city doesn't mean it covers temples.
+    question_words = set(re.findall(r"[a-z]+", (question or "").lower()))
+    needs_live_supplement = (not matched) or bool(TEMPLE_WORDS & question_words)
+
+    live_place = None
+    live_sights = []
+
+    if needs_live_supplement:
+        live_place = _resolve_live_place(retrieval_query)
+        if live_place and live_place.get("place_id"):
+            live_sights = _fetch_live_sights(live_place["place_id"], question)
+
+    # A real live match replaces the arbitrary top-rated curated fallback
+    # entirely -- mixing in unrelated "top rated" destinations would just
+    # confuse the answer once we have something actually relevant.
+    curated_to_enrich = [] if (not matched and live_place) else retrieved
 
     with ThreadPoolExecutor(max_workers=4) as pool:
-        enriched = list(pool.map(_enrich, retrieved))
+        enriched = list(pool.map(_enrich, curated_to_enrich)) if curated_to_enrich else []
 
-    context = _format_context(enriched)
+    context_blocks = []
+    if enriched:
+        context_blocks.append(_format_context(enriched))
+    if live_place:
+        context_blocks.append(_format_live_context(live_place, live_sights))
+
+    context = "\n\n".join(context_blocks) if context_blocks else "No relevant real data found for this question."
 
     messages = [
-        {"role": "system", "content": f"{SYSTEM_PROMPT}\n\nREAL DESTINATION DATA:\n{context}"}
+        {"role": "system", "content": f"{SYSTEM_PROMPT}\n\nREAL DATA:\n{context}"}
     ]
 
     for turn in (history or [])[-6:]:
@@ -194,5 +364,11 @@ def ask(question, history=None):
         {"name": d.get("name"), "country": d.get("country"), "state": d.get("state")}
         for d in enriched
     ]
+    if live_place:
+        sources.append({
+            "name": live_place.get("name"),
+            "country": live_place.get("country"),
+            "state": live_place.get("state"),
+        })
 
     return {"answer": answer, "sources": sources}

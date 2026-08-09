@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { askAssistant } from "../services/ragService";
+import { askAssistant, clearAssistantHistory, fetchAssistantHistory } from "../services/ragService";
 
 const STARTER_PROMPTS = [
   "Suggest a cool hill station for a family trip",
@@ -12,11 +12,26 @@ export default function Assistant() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
   const bottomRef = useRef(null);
+
+  useEffect(() => {
+    fetchAssistantHistory().then((saved) => {
+      setMessages(
+        saved.map((m) => ({ role: m.role, content: m.content, sources: m.sources }))
+      );
+      setHistoryLoaded(true);
+    });
+  }, []);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
+
+  const handleClear = async () => {
+    await clearAssistantHistory();
+    setMessages([]);
+  };
 
   const send = async (text) => {
     const question = (text ?? input).trim();
@@ -57,9 +72,20 @@ export default function Assistant() {
 
         <div className="bg-white rounded-2xl shadow-sm flex-1 flex flex-col max-w-3xl w-full min-h-[60vh]">
 
+          {messages.length > 0 && (
+            <div className="flex justify-end px-6 pt-4">
+              <button
+                onClick={handleClear}
+                className="text-xs text-gray-400 hover:text-red-500 transition-colors"
+              >
+                Clear chat
+              </button>
+            </div>
+          )}
+
           <div className="flex-1 overflow-y-auto p-6 space-y-4">
 
-            {messages.length === 0 && (
+            {historyLoaded && messages.length === 0 && (
               <div>
                 <p className="text-sm text-gray-400 mb-3">Try asking:</p>
                 <div className="flex flex-wrap gap-2">

@@ -24,6 +24,8 @@ payments_collection = db["payments"]
 
 reviews_collection = db["reviews"]
 
+chat_history_collection = db["chat_history"]
+
 trip_plans_collection = db["trip_plans"]
 
 search_history_collection = db["search_history"]

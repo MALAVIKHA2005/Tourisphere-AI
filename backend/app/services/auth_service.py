@@ -7,6 +7,7 @@ from bson import ObjectId
 from dotenv import load_dotenv
 
 from app.database.mongodb import (
+    chat_history_collection,
     favorites_collection,
     reviews_collection,
     search_history_collection,
@@ -64,6 +65,10 @@ def merge_guest_data(guest_id: str, user_id: str):
         {"user_id": guest_id}, {"$set": {"user_id": user_id}}
     )
 
+    chat_history_collection.update_many(
+        {"user_id": guest_id}, {"$set": {"user_id": user_id}}
+    )
+
     guest_favorites = list(favorites_collection.find({"user_id": guest_id}))
 
     for favorite in guest_favorites:
@@ -110,6 +115,9 @@ def export_user_data(user: dict) -> dict:
         "reviews": list(
             reviews_collection.find({"user_id": user_id}, {"_id": 0})
         ),
+        "chat_history": list(
+            chat_history_collection.find({"user_id": user_id}, {"_id": 0})
+        ),
     }
 
 
@@ -120,4 +128,5 @@ def delete_user_account(user_id: str):
     search_history_collection.delete_many({"user_id": user_id})
     favorites_collection.delete_many({"user_id": user_id})
     reviews_collection.delete_many({"user_id": user_id})
+    chat_history_collection.delete_many({"user_id": user_id})
     users_collection.delete_one({"_id": ObjectId(user_id)})

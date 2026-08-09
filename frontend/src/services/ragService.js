@@ -14,3 +14,23 @@ export const askAssistant = async (question, history = []) => {
     };
   }
 };
+
+export const fetchAssistantHistory = async () => {
+  try {
+    const data = await apiFetch("/assistant/history");
+    return data.messages || [];
+  } catch (error) {
+    console.error("Assistant History Fetch Error:", error);
+    return [];
+  }
+};
+
+export const clearAssistantHistory = async () => {
+  try {
+    await apiFetch("/assistant/history", { method: "DELETE" });
+    return true;
+  } catch (error) {
+    console.error("Assistant History Clear Error:", error);
+    return false;
+  }
+};
