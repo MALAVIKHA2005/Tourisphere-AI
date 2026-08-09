@@ -43,6 +43,7 @@ Live hotel pricing is powered by [Xotelo](https://xotelo.com/) via RapidAPI (Ama
 - Traveler Reviews (destinations): signed-in users can leave a real 1-5 star rating + written review per destination (editable, one per user), shown on every destination's detail view with a live average rating
 - Sentiment Analysis: every real review's text is scored with VADER (a lexicon + rule-based sentiment analyzer, not a trained model -- no labeled training data exists for travel reviews here), computed once when the review is saved. Each review shows its own sentiment badge; a destination-level breakdown (Positive/Neutral/Negative, with "Mixed" for genuine ties rather than an arbitrary pick) lives on its own page (sidebar "Sentiment", previously a dead placeholder), honestly empty for destinations with no reviews yet
 - Dataset: a browsable, searchable, CSV/JSON-exportable view of the real curated destinations dataset this platform runs on -- not on the original 22-phase roadmap, but the sidebar had an unused "Dataset" placeholder left over from an early mockup, so it's now a real transparency page instead of a dead button
+- RAG AI Assistant: a chat assistant (Groq/Llama 3.3) whose answers are grounded in this platform's own real data -- keyword-overlap retrieval over the curated catalogue pulls in the real climate, live budget, live Wikipedia popularity, real climate-derived Best Months and real traveler reviews for the destinations actually relevant to the question, and the model is instructed to answer only from that context and say so honestly when the real data doesn't cover what's asked, rather than inventing facts
 
 ---
 
@@ -66,7 +67,7 @@ Live hotel pricing is powered by [Xotelo](https://xotelo.com/) via RapidAPI (Ama
 | Phase 14 | Forecasting (real Wikipedia search-interest trend, not visitor-count data -- none exists free) | ✅ Completed |
 | Phase 15 | User Segmentation (rule-based persona classification from real engagement -- not enough real users yet for clustering) | ✅ Completed |
 | Phase 16 | Sentiment Analysis (real reviews scored with VADER, lexicon-based -- no training data exists to train a model) | ✅ Completed |
-| Phase 17 | RAG AI Assistant | ⏳ Planned |
+| Phase 17 | RAG AI Assistant (retrieval grounded in real platform data, Groq/Llama 3.3 for generation) | ✅ Completed |
 | Phase 18 | AI Trip Planner | ⏳ Planned |
 | Phase 19 | Booking System | ⏳ Planned |
 | Phase 20 | Expense Tracker | ⏳ Planned |
@@ -192,8 +193,8 @@ git clone https://github.com/YOUR_GITHUB_USERNAME/Tourisphere-AI.git
 
 Both `frontend/` and `backend/` have a `.env.example`. Copy each to `.env`
 in the same folder and fill in your own values (MongoDB URI, API keys for
-Geoapify/Pexels/OpenWeatherMap/Amadeus, a random JWT secret). Never commit
-the real `.env` files.
+Geoapify/Pexels/OpenWeatherMap/RapidAPI (Xotelo)/Foursquare/Groq, a random
+JWT secret). Never commit the real `.env` files.
 
 ### Frontend
 
