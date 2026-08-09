@@ -29,6 +29,7 @@ STOPWORDS = {
     "those", "i", "you", "he", "she", "it", "we", "they", "my", "your",
     "his", "her", "its", "our", "their", "do", "does", "did", "can",
     "could", "will", "would", "should", "shall", "may", "might", "must",
+    "how", "when", "where", "why",
     "not", "no", "yes", "if", "then", "than", "so", "as", "from", "by",
     "up", "out", "down", "into", "over", "me", "us", "him", "them",
     "tell", "give", "find", "show", "good", "some", "any", "there",
@@ -51,7 +52,21 @@ NON_PLACE_WORDS = STOPWORDS | {
 
 TEMPLE_WORDS = {"temple", "temples", "church", "churches", "mosque", "mosques", "shrine", "shrines"}
 
-VALID_GEOCODE_RESULT_TYPES = {"city", "island", "region", "county", "state", "amenity", "district"}
+# These are category signals (see _fetch_live_sights), not place-name
+# candidates -- without excluding them, a question like "temple details
+# in Madurai" tries geocoding "temple" first and finds a real town
+# literally named Temple, Texas, winning over the actual place name.
+NON_PLACE_WORDS = NON_PLACE_WORDS | TEMPLE_WORDS
+
+# Deliberately excludes "amenity" -- that result type matches individual
+# named venues (shops, cafes, monuments), not places, so a common English
+# word that happens to coincidentally be a business's real name (e.g. a
+# cafe literally named "Things") could win over the actual place name in
+# the same question. Restricting to real geographic entities means a
+# false-positive candidate is far more likely to simply fail to resolve
+# and fall through to the next one, instead of confidently resolving to
+# the wrong thing.
+VALID_GEOCODE_RESULT_TYPES = {"city", "island", "region", "county", "state", "district"}
 
 SYSTEM_PROMPT = (
     "You are Tourisphere's travel assistant. Answer the traveler's question "
@@ -74,14 +89,20 @@ def _tokenize(text):
     }
 
 
-def _destination_document(d):
-    parts = [
-        d.get("name"), d.get("country"), d.get("state"), d.get("city"),
-        d.get("climate"),
-        " ".join(d.get("interests") or []),
-        " ".join(d.get("suitableFor") or []),
-    ]
-    return " ".join(p for p in parts if p)
+def _location_words(d):
+    """Real identity of the place -- a match here means the question is
+    actually about this destination, not just sharing a generic word."""
+    parts = [d.get("name"), d.get("country"), d.get("state"), d.get("city")]
+    return _tokenize(" ".join(p for p in parts if p))
+
+
+def _descriptive_words(d):
+    """Editorial tags shared across many destinations (e.g. "Adventure",
+    "Cool") -- real, but too generic on their own to prove a question is
+    about THIS specific destination rather than an uncovered one that
+    happens to share the same vocabulary."""
+    parts = [d.get("climate"), " ".join(d.get("interests") or []), " ".join(d.get("suitableFor") or [])]
+    return _tokenize(" ".join(p for p in parts if p))
 
 
 def retrieve_relevant(question, top_k=4):
@@ -92,9 +113,14 @@ def retrieve_relevant(question, top_k=4):
     just an honest word-overlap score, same spirit as the significant-word
     matching wikipedia_service.py already uses elsewhere in this codebase.
 
-    Returns (destinations, matched) -- matched is False when nothing in
-    the curated catalogue actually overlapped and the top-rated fallback
-    was used instead, so callers can tell a real match from a filler one.
+    Returns (destinations, matched) -- matched is True only when the TOP
+    result's overlap includes a real location word (name/city/state/
+    country), not just shared descriptive vocabulary. A question about an
+    uncovered real place (e.g. "Rishikesh for adventure sports") would
+    otherwise coincidentally match several curated destinations tagged
+    "Adventure" and wrongly skip the live-search fallback for Rishikesh
+    itself -- location overlap is weighted far higher so a real place
+    match always outranks generic shared tags.
     """
 
     destinations = list(destinations_collection.find({}, {"_id": 0}))
@@ -102,14 +128,19 @@ def retrieve_relevant(question, top_k=4):
 
     scored = []
     for d in destinations:
-        overlap = query_words & _tokenize(_destination_document(d))
-        if overlap:
-            scored.append((len(overlap), d))
+        loc_overlap = query_words & _location_words(d)
+        desc_overlap = query_words & _descriptive_words(d)
+        total = len(loc_overlap) + len(desc_overlap)
+
+        if total:
+            weighted = len(loc_overlap) * 10 + len(desc_overlap)
+            scored.append((weighted, bool(loc_overlap), d))
 
     scored.sort(key=lambda item: item[0], reverse=True)
 
     if scored:
-        return [d for _, d in scored[:top_k]], True
+        top = [d for _, _, d in scored[:top_k]]
+        return top, scored[0][1]
 
     # No keyword overlap at all -- fall back to the catalogue's real
     # highest-rated places so there's still *some* real grounding.
