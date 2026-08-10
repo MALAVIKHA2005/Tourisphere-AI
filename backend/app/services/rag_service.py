@@ -105,6 +105,40 @@ def _descriptive_words(d):
     return _tokenize(" ".join(p for p in parts if p))
 
 
+def _diversify_by_country(ranked_destinations, top_k, max_per_country=1):
+    """
+    Picks top_k from an already score-ranked list, capping how many can
+    come from the same country on the first pass. Without this, a tie
+    among many equally-valid matches (e.g. every "Cool" climate
+    destination for a generic "cool places" question) silently favors
+    whichever country happens to have the most curated entries -- 3 of
+    India's 4 Cool destinations would fill every slot before Zurich,
+    London or New York (also real Cool destinations) ever got a chance,
+    making the catalogue's real global spread invisible. Backfills from
+    the same ranked order (ignoring the cap) if diversifying alone
+    doesn't reach top_k.
+    """
+
+    picked, seen = [], {}
+
+    for d in ranked_destinations:
+        country = (d.get("country") or "").lower()
+        if seen.get(country, 0) >= max_per_country:
+            continue
+        picked.append(d)
+        seen[country] = seen.get(country, 0) + 1
+        if len(picked) >= top_k:
+            return picked
+
+    for d in ranked_destinations:
+        if d not in picked:
+            picked.append(d)
+            if len(picked) >= top_k:
+                break
+
+    return picked
+
+
 def retrieve_relevant(question, top_k=4):
     """
     Real, transparent keyword-overlap retrieval over the curated
@@ -139,13 +173,23 @@ def retrieve_relevant(question, top_k=4):
     scored.sort(key=lambda item: item[0], reverse=True)
 
     if scored:
-        top = [d for _, _, d in scored[:top_k]]
-        return top, scored[0][1]
+        matched = scored[0][1]
+        ranked = [d for _, _, d in scored]
+
+        # A confident location match (a real place was actually named) is
+        # returned in strict score order -- there's usually only one real
+        # destination for a specific place anyway, so diversifying would
+        # just be noise. A generic/descriptive match (no place named) is
+        # exactly the case that needs diversifying, or ties silently
+        # favor whichever country has the most curated entries.
+        top = ranked[:top_k] if matched else _diversify_by_country(ranked, top_k)
+        return top, matched
 
     # No keyword overlap at all -- fall back to the catalogue's real
-    # highest-rated places so there's still *some* real grounding.
+    # highest-rated places so there's still *some* real grounding, spread
+    # across countries rather than whichever happens to rate highest most often.
     destinations.sort(key=lambda d: d.get("rating") or 0, reverse=True)
-    return destinations[:top_k], False
+    return _diversify_by_country(destinations, top_k), False
 
 
 def _extract_place_candidates(question, max_candidates=3):
