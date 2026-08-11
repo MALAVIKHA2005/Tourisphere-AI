@@ -231,6 +231,18 @@ def _resolve_live_place(question):
             if props.get("result_type") not in VALID_GEOCODE_RESULT_TYPES:
                 continue
 
+            # A common English word can still coincidentally BE a real,
+            # obscure place ("How" is a real tiny town in Wisconsin) --
+            # result_type alone doesn't catch that. Real tourist
+            # destinations (even smaller ones -- Munnar scores ~0.44,
+            # Ooty ~0.47) score well above coincidental word matches
+            # ("how" ~0.32, "share" ~0.15, "project" ~0.19), so requiring
+            # a minimum importance filters those out without needing an
+            # ever-growing manual word list.
+            importance = (props.get("rank") or {}).get("importance")
+            if importance is None or importance < 0.35:
+                continue
+
             return {
                 "place_id": props.get("place_id"),
                 "name": props.get("city") or props.get("name") or candidate.title(),
