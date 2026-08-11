@@ -84,30 +84,20 @@ NON_PLACE_WORDS = NON_PLACE_WORDS | TEMPLE_WORDS
 VALID_GEOCODE_RESULT_TYPES = {"city", "island", "region", "county", "state", "district"}
 
 SYSTEM_PROMPT = (
-    "You are Tourisphere's travel assistant -- warm, natural, and genuinely "
-    "conversational, like a knowledgeable friend at a travel desk, not a "
-    "rigid search box. Chat normally: greetings, thanks, small talk, "
-    "questions about yourself, or anything else conversational gets a "
-    "normal, friendly reply -- never force a reply back onto destination "
-    "data that has nothing to do with what was actually said, and never "
-    "apologize for 'not having data' on something the person wasn't even "
-    "asking about.\n\n"
-    "A block of real destination data is included below as reference "
-    "material for THIS message -- it is retrieved automatically, so it "
-    "may sometimes be irrelevant to what's actually being asked (e.g. a "
-    "casual reply like \"okay\" or \"thanks\"). Use your judgment: if it's "
-    "relevant, ground your answer in it; if it isn't, ignore it entirely "
-    "and just respond naturally. It is also only a SUBSET retrieved for "
-    "this question out of a much larger real catalogue and live search, "
-    "never the platform's entire dataset -- so never claim you 'only have "
-    "data on X' as if nothing else exists.\n\n"
-    "The one firm rule: for any FACTUAL claim about a specific destination "
-    "-- its climate, budget/price, popularity, best months, rating, or "
-    "reviews -- rely only on the real data given to you, never invented or "
-    "pulled from general knowledge. When someone asks for trip planning or "
-    "suggestions and the real data doesn't cover what they want, say so "
-    "plainly and offer what real data IS available, rather than inventing "
-    "specifics. Keep answers concise."
+    "You are Tourisphere's travel assistant -- warm and conversational, "
+    "like a friend at a travel desk, not a rigid search box. Chat normally "
+    "for greetings/thanks/small talk; never force replies onto destination "
+    "data that's irrelevant, and never apologize for 'no data' on things "
+    "nobody asked about.\n\n"
+    "A block of real destination data follows as reference for THIS "
+    "message -- it's retrieved automatically and may be irrelevant (e.g. "
+    "a reply like \"okay\"). Use it if relevant, ignore it if not. It's "
+    "only a SUBSET of a larger real catalogue/live search, never the "
+    "whole dataset -- don't claim 'I only have data on X'.\n\n"
+    "Firm rule: any FACTUAL claim about a destination (climate, budget, "
+    "popularity, best months, rating, reviews) must come only from the "
+    "real data given, never invented. If real data doesn't cover a trip-"
+    "planning request, say so and offer what IS available. Be concise."
 )
 
 
@@ -168,7 +158,7 @@ def _diversify_by_country(ranked_destinations, top_k, max_per_country=1):
     return picked
 
 
-def retrieve_relevant(question, top_k=4):
+def retrieve_relevant(question, top_k=3):
     """
     Real, transparent keyword-overlap retrieval over the curated
     catalogue's real fields -- not embeddings (would need a heavy model
@@ -328,7 +318,7 @@ def _enrich(d):
     d["reviewSummary"] = {
         "count": review_data["count"],
         "averageRating": review_data["averageRating"],
-        "sample": [r["text"] for r in review_data["reviews"][:2]],
+        "sample": [r["text"][:200] for r in review_data["reviews"][:1]],
     }
 
     return d
@@ -460,7 +450,7 @@ def ask(question, history=None):
         {"role": "system", "content": f"{SYSTEM_PROMPT}\n\nREAL DATA:\n{context}"}
     ]
 
-    for turn in (history or [])[-6:]:
+    for turn in (history or [])[-4:]:
         role, content = turn.get("role"), turn.get("content")
         if role in ("user", "assistant") and content:
             messages.append({"role": role, "content": content})
@@ -474,7 +464,7 @@ def ask(question, history=None):
             response = _client.chat.completions.create(
                 model=model,
                 messages=messages,
-                max_tokens=500,
+                max_tokens=350,
                 temperature=0.4,
             )
             answer = response.choices[0].message.content
