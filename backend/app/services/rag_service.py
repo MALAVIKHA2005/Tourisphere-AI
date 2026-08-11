@@ -3,7 +3,7 @@ import re
 from concurrent.futures import ThreadPoolExecutor
 
 import requests
-from groq import Groq
+from groq import Groq, RateLimitError
 
 from app.database.mongodb import destinations_collection
 from app.services.climate_service import get_best_months
@@ -15,6 +15,11 @@ from app.utils.identity import get_destination_key
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GEOAPIFY_API_KEY = os.getenv("GEOAPIFY_API_KEY")
 MODEL = "llama-3.3-70b-versatile"
+# Groq tracks each model's daily token quota separately -- a smaller,
+# lighter model that's gone largely unused still has its own headroom
+# even when the primary model's quota is exhausted. Used as an automatic
+# fallback, not the default, since it's a step down in answer quality.
+FALLBACK_MODEL = "llama-3.1-8b-instant"
 
 _client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
 
@@ -462,16 +467,31 @@ def ask(question, history=None):
 
     messages.append({"role": "user", "content": question})
 
-    try:
-        response = _client.chat.completions.create(
-            model=MODEL,
-            messages=messages,
-            max_tokens=500,
-            temperature=0.4,
-        )
-        answer = response.choices[0].message.content
-    except Exception as e:
-        print("Groq Error:", e)
+    answer = None
+
+    for model in (MODEL, FALLBACK_MODEL):
+        try:
+            response = _client.chat.completions.create(
+                model=model,
+                messages=messages,
+                max_tokens=500,
+                temperature=0.4,
+            )
+            answer = response.choices[0].message.content
+            break
+        except RateLimitError as e:
+            # The primary model's daily quota is exhausted -- fall
+            # through to the lighter model, which Groq tracks separately
+            # and very likely still has headroom on. Only swallow this
+            # on the primary model; if the fallback also rate-limits,
+            # that's a real "nothing left today" case worth surfacing.
+            print(f"Groq rate limit on {model}, trying fallback:", e)
+            continue
+        except Exception as e:
+            print("Groq Error:", e)
+            break
+
+    if answer is None:
         answer = "Something went wrong reaching the assistant. Please try again."
 
     sources = [
