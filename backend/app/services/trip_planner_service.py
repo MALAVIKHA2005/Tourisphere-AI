@@ -1,6 +1,9 @@
 import os
 from concurrent.futures import ThreadPoolExecutor
 
+from google import genai
+from google.genai import errors as genai_errors
+from google.genai import types as genai_types
 from groq import Groq, RateLimitError
 
 from app.services.climate_service import get_best_months
@@ -9,10 +12,14 @@ from app.services.lifestyle_service import get_lifestyle
 from app.services.restaurant_service import get_restaurants
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-MODEL = "llama-3.3-70b-versatile"
-FALLBACK_MODEL = "llama-3.1-8b-instant"
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-_client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
+GEMINI_MODEL = "gemini-flash-latest"
+GROQ_MODEL = "llama-3.3-70b-versatile"
+GROQ_FALLBACK_MODEL = "llama-3.1-8b-instant"
+
+_gemini_client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
+_groq_client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
 
 MAX_DAYS = 14
 
@@ -73,10 +80,65 @@ def _format_context(restaurants, lifestyle, hotels, budget, best_months):
     return "\n".join(lines) if lines else "No real data available for this destination."
 
 
+def _generate(system_prompt, user_message, max_tokens):
+    """
+    Gemini is the primary generator -- a completely separate API key and
+    quota from the RAG assistant's Groq usage, so heavy trip-planning use
+    can no longer starve (or be starved by) the chat assistant. Falls
+    through to Groq's own two-model chain only if Gemini is unavailable
+    or rate-limited. Gemini's thinking budget shares the same output
+    token pool as the visible answer (confirmed directly -- a tight cap
+    left the real answer empty because thinking alone used it up), so
+    this is given generous headroom rather than the tight budget tuned
+    for Groq's hard daily cap.
+    """
+
+    if _gemini_client:
+        try:
+            response = _gemini_client.models.generate_content(
+                model=GEMINI_MODEL,
+                contents=f"{system_prompt}\n\n{user_message}",
+                config=genai_types.GenerateContentConfig(
+                    max_output_tokens=max_tokens + 1500,
+                    temperature=0.5,
+                    thinking_config=genai_types.ThinkingConfig(thinking_level="low"),
+                ),
+            )
+            if response.text:
+                return response.text
+        except genai_errors.APIError as e:
+            print(f"Gemini error ({e.code}), falling back to Groq:", e)
+        except Exception as e:
+            print("Gemini error, falling back to Groq:", e)
+
+    if _groq_client:
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_message},
+        ]
+        for model in (GROQ_MODEL, GROQ_FALLBACK_MODEL):
+            try:
+                response = _groq_client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                    max_tokens=max_tokens,
+                    temperature=0.5,
+                )
+                return response.choices[0].message.content
+            except RateLimitError as e:
+                print(f"Groq rate limit on {model}, trying next:", e)
+                continue
+            except Exception as e:
+                print("Groq Error:", e)
+                break
+
+    return None
+
+
 def generate_itinerary(destination_name, city, country, days, interests=None):
-    if not _client:
+    if not _gemini_client and not _groq_client:
         return {
-            "itinerary": "The AI trip planner isn't configured yet -- no GROQ_API_KEY is set on the server.",
+            "itinerary": "The AI trip planner isn't configured yet -- no GEMINI_API_KEY or GROQ_API_KEY is set on the server.",
             "sources": {},
         }
 
@@ -105,33 +167,10 @@ def generate_itinerary(destination_name, city, country, days, interests=None):
         f"Plan a {days}-day trip to {destination_name} ({city}, {country}).{interest_note}"
     )
 
-    messages = [
-        {
-            "role": "system",
-            "content": f"{SYSTEM_PROMPT}\n\nREAL DATA FOR {destination_name}:\n{context}",
-        },
-        {"role": "user", "content": user_message},
-    ]
-
+    system_prompt = f"{SYSTEM_PROMPT}\n\nREAL DATA FOR {destination_name}:\n{context}"
     max_tokens = min(1800, 120 * days + 300)
-    itinerary = None
 
-    for model in (MODEL, FALLBACK_MODEL):
-        try:
-            response = _client.chat.completions.create(
-                model=model,
-                messages=messages,
-                max_tokens=max_tokens,
-                temperature=0.5,
-            )
-            itinerary = response.choices[0].message.content
-            break
-        except RateLimitError as e:
-            print(f"Groq rate limit on {model}, trying fallback:", e)
-            continue
-        except Exception as e:
-            print("Groq Error:", e)
-            break
+    itinerary = _generate(system_prompt, user_message, max_tokens)
 
     if itinerary is None:
         itinerary = "Something went wrong generating your itinerary. Please try again."
