@@ -14,7 +14,7 @@ FALLBACK_MODEL = "llama-3.1-8b-instant"
 
 _client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
 
-MAX_DAYS = 7
+MAX_DAYS = 14
 
 SYSTEM_PROMPT = (
     "You are Tourisphere's trip planner. Build a realistic day-by-day "
@@ -22,10 +22,14 @@ SYSTEM_PROMPT = (
     "listed below -- never invent a place name, address, or price that "
     "isn't in the data given. Spread real activities sensibly across the "
     "requested number of days (morning/afternoon/evening), pairing real "
-    "restaurants for meals with real lifestyle spots for activities. If "
-    "there isn't enough real data to fill every day meaningfully, say so "
-    "honestly for that day instead of inventing filler. Format clearly as "
-    "\"Day 1\", \"Day 2\", etc., each with a short list of real activities."
+    "restaurants for meals with real lifestyle spots for activities. Only "
+    "a limited number of real places are listed, so for longer trips you "
+    "will run out of new ones -- that's fine, reuse real favorites on "
+    "later days like a real traveler revisiting a place they liked (note "
+    "briefly that it's a repeat visit), rather than treating it as a gap "
+    "to apologize for. Only say a day can't be filled meaningfully if "
+    "there is truly no real data left to draw from at all. Format clearly "
+    "as \"Day 1\", \"Day 2\", etc., each with a short list of real activities."
 )
 
 LIFESTYLE_LABELS = {
@@ -109,7 +113,7 @@ def generate_itinerary(destination_name, city, country, days, interests=None):
         {"role": "user", "content": user_message},
     ]
 
-    max_tokens = min(1200, 150 * days + 250)
+    max_tokens = min(1800, 120 * days + 300)
     itinerary = None
 
     for model in (MODEL, FALLBACK_MODEL):

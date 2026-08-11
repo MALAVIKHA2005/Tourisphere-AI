@@ -177,12 +177,12 @@ export default function TripPlanner() {
 
               <div>
                 <label className="text-xs uppercase tracking-wide text-gray-400 mb-2 block">
-                  Days (max 7)
+                  Days (max 14)
                 </label>
                 <input
                   type="number"
                   min={1}
-                  max={7}
+                  max={14}
                   value={days}
                   onChange={(e) => setDays(e.target.value)}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-400"
