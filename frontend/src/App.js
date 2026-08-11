@@ -7,6 +7,7 @@ import Segmentation from "./pages/Segmentation";
 import Sentiment from "./pages/Sentiment";
 import Dataset from "./pages/Dataset";
 import Assistant from "./pages/Assistant";
+import TripPlanner from "./pages/TripPlanner";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Privacy from "./pages/Privacy";
@@ -143,6 +144,13 @@ function App() {
             AI Assistant
           </button>
 
+          <button
+            onClick={() => setActivePage("tripPlanner")}
+            className={navButtonClass(activePage === "tripPlanner")}
+          >
+            Trip Planner
+          </button>
+
         </div>
 
         <button
@@ -171,6 +179,8 @@ function App() {
         {activePage === "dataset" && <Dataset />}
 
         {activePage === "assistant" && <Assistant />}
+
+        {activePage === "tripPlanner" && <TripPlanner />}
 
         {activePage === "login" && (
           <Login
