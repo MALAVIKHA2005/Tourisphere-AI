@@ -35,6 +35,14 @@ STOPWORDS = {
     "tell", "give", "find", "show", "good", "some", "any", "there",
     "want", "like", "need", "looking", "trip", "travel", "place",
     "places", "destination", "destinations", "visit",
+    # Pure conversational filler -- has zero signal value even when it
+    # coincidentally happens to also be a real, obscure place name (there
+    # is a real tiny town literally called "Okay, Oklahoma"). Deliberately
+    # does NOT include words like "cool" that are filler-ish but also a
+    # real descriptive tag value (climate "Cool") retrieval scoring
+    # depends on.
+    "okay", "ok", "yes", "sure", "thanks", "thank", "please", "alright",
+    "right", "fine", "great", "nice", "hmm",
 }
 
 # Words that show up constantly in travel questions but aren't candidate
