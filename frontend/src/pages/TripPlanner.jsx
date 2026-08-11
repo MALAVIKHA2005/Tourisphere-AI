@@ -39,6 +39,9 @@ export default function TripPlanner() {
   const [interests, setInterests] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
+  const [useCustom, setUseCustom] = useState(false);
+  const [customCity, setCustomCity] = useState("");
+  const [customCountry, setCustomCountry] = useState("");
 
   useEffect(() => {
     fetchDestinations().then((data) => {
@@ -50,11 +53,21 @@ export default function TripPlanner() {
   }, []);
 
   const handleGenerate = async () => {
-    const destination = destinations.find(
-      (d) => `${d.name}|${d.country}` === selectedKey
-    );
+    let destination;
 
-    if (!destination) return;
+    if (useCustom) {
+      if (!customCity.trim()) return;
+      destination = {
+        name: customCity.trim(),
+        city: customCity.trim(),
+        country: customCountry.trim(),
+      };
+    } else {
+      destination = destinations.find(
+        (d) => `${d.name}|${d.country}` === selectedKey
+      );
+      if (!destination) return;
+    }
 
     setLoading(true);
     setResult(null);
@@ -89,23 +102,78 @@ export default function TripPlanner() {
 
         <div className="max-w-3xl">
           <div className="bg-white rounded-2xl shadow-sm p-8 mb-8">
+
+            <div className="flex gap-2 mb-4">
+              <button
+                type="button"
+                onClick={() => setUseCustom(false)}
+                className={`text-xs px-3 py-1.5 rounded-full border transition-all ${
+                  !useCustom
+                    ? "bg-gradient-to-r from-orange-500 to-pink-500 text-white border-transparent"
+                    : "bg-white text-gray-600 border-gray-300 hover:border-orange-300"
+                }`}
+              >
+                Curated catalogue
+              </button>
+              <button
+                type="button"
+                onClick={() => setUseCustom(true)}
+                className={`text-xs px-3 py-1.5 rounded-full border transition-all ${
+                  useCustom
+                    ? "bg-gradient-to-r from-orange-500 to-pink-500 text-white border-transparent"
+                    : "bg-white text-gray-600 border-gray-300 hover:border-orange-300"
+                }`}
+              >
+                Any destination
+              </button>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-              <div className="sm:col-span-2">
-                <label className="text-xs uppercase tracking-wide text-gray-400 mb-2 block">
-                  Destination
-                </label>
-                <select
-                  value={selectedKey}
-                  onChange={(e) => setSelectedKey(e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-400"
-                >
-                  {destinations.map((d) => (
-                    <option key={`${d.name}|${d.country}`} value={`${d.name}|${d.country}`}>
-                      {d.name}, {d.country}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {useCustom ? (
+                <>
+                  <div>
+                    <label className="text-xs uppercase tracking-wide text-gray-400 mb-2 block">
+                      City
+                    </label>
+                    <input
+                      type="text"
+                      value={customCity}
+                      onChange={(e) => setCustomCity(e.target.value)}
+                      placeholder="e.g. Coimbatore"
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs uppercase tracking-wide text-gray-400 mb-2 block">
+                      Country (optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={customCountry}
+                      onChange={(e) => setCustomCountry(e.target.value)}
+                      placeholder="e.g. India"
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-400"
+                    />
+                  </div>
+                </>
+              ) : (
+                <div className="sm:col-span-2">
+                  <label className="text-xs uppercase tracking-wide text-gray-400 mb-2 block">
+                    Destination
+                  </label>
+                  <select
+                    value={selectedKey}
+                    onChange={(e) => setSelectedKey(e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-400"
+                  >
+                    {destinations.map((d) => (
+                      <option key={`${d.name}|${d.country}`} value={`${d.name}|${d.country}`}>
+                        {d.name}, {d.country}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div>
                 <label className="text-xs uppercase tracking-wide text-gray-400 mb-2 block">
@@ -135,7 +203,7 @@ export default function TripPlanner() {
 
             <button
               onClick={handleGenerate}
-              disabled={loading || !selectedKey}
+              disabled={loading || (useCustom ? !customCity.trim() : !selectedKey)}
               className="bg-gradient-to-r from-orange-500 to-pink-500 text-white px-6 py-3 rounded-xl font-semibold shadow-sm hover:shadow-md active:scale-[0.98] transition-all disabled:opacity-50"
             >
               {loading ? "Building your itinerary..." : "Generate Itinerary"}
