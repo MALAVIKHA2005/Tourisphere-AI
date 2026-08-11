@@ -42,7 +42,9 @@ STOPWORDS = {
     # real descriptive tag value (climate "Cool") retrieval scoring
     # depends on.
     "okay", "ok", "yes", "sure", "thanks", "thank", "please", "alright",
-    "right", "fine", "great", "nice", "hmm",
+    "right", "fine", "great", "nice", "hmm", "hey", "hello", "hii",
+    "morning", "evening", "night", "afternoon", "much", "lot", "bit",
+    "bye", "goodbye",
 }
 
 # Words that show up constantly in travel questions but aren't candidate
@@ -77,16 +79,30 @@ NON_PLACE_WORDS = NON_PLACE_WORDS | TEMPLE_WORDS
 VALID_GEOCODE_RESULT_TYPES = {"city", "island", "region", "county", "state", "district"}
 
 SYSTEM_PROMPT = (
-    "You are Tourisphere's travel assistant. Answer the traveler's question "
-    "using ONLY the real data given to you below -- never invent facts, "
-    "prices, ratings, popularity numbers, or reviews that aren't explicitly "
-    "present in it. The data below is a SUBSET retrieved specifically for "
-    "this question out of a much larger real catalogue and live search -- "
-    "it is not the entirety of what this platform knows, so never claim you "
-    "'only have data on X' or that nothing else exists. If the provided data "
-    "doesn't cover what's asked, say so honestly for THIS question and "
-    "mention what real data IS available instead of guessing. Keep answers "
-    "concise and conversational."
+    "You are Tourisphere's travel assistant -- warm, natural, and genuinely "
+    "conversational, like a knowledgeable friend at a travel desk, not a "
+    "rigid search box. Chat normally: greetings, thanks, small talk, "
+    "questions about yourself, or anything else conversational gets a "
+    "normal, friendly reply -- never force a reply back onto destination "
+    "data that has nothing to do with what was actually said, and never "
+    "apologize for 'not having data' on something the person wasn't even "
+    "asking about.\n\n"
+    "A block of real destination data is included below as reference "
+    "material for THIS message -- it is retrieved automatically, so it "
+    "may sometimes be irrelevant to what's actually being asked (e.g. a "
+    "casual reply like \"okay\" or \"thanks\"). Use your judgment: if it's "
+    "relevant, ground your answer in it; if it isn't, ignore it entirely "
+    "and just respond naturally. It is also only a SUBSET retrieved for "
+    "this question out of a much larger real catalogue and live search, "
+    "never the platform's entire dataset -- so never claim you 'only have "
+    "data on X' as if nothing else exists.\n\n"
+    "The one firm rule: for any FACTUAL claim about a specific destination "
+    "-- its climate, budget/price, popularity, best months, rating, or "
+    "reviews -- rely only on the real data given to you, never invented or "
+    "pulled from general knowledge. When someone asks for trip planning or "
+    "suggestions and the real data doesn't cover what they want, say so "
+    "plainly and offer what real data IS available, rather than inventing "
+    "specifics. Keep answers concise."
 )
 
 
@@ -416,13 +432,16 @@ def ask(question, history=None):
         if live_place and live_place.get("place_id"):
             live_sights = _fetch_live_sights(live_place["place_id"], question)
 
-    # A real live match replaces the arbitrary top-rated curated fallback
-    # entirely -- mixing in unrelated "top rated" destinations would just
-    # confuse the answer once we have something actually relevant.
-    curated_to_enrich = [] if (not matched and live_place) else retrieved
-
+    # Live search is always ADDITIVE, never a replacement for the curated
+    # fallback -- a live match can itself be a coincidental false positive
+    # (a common word that happens to also be an obscure real place, like
+    # "Day, NY" from "3 day trip"), and previously discarding the curated
+    # results whenever one resolved meant a single bad word could throw
+    # away a perfectly good answer. Both are offered as context; the
+    # system prompt now explicitly tells the model to use judgment about
+    # which (if any) is actually relevant, rather than pre-deciding here.
     with ThreadPoolExecutor(max_workers=4) as pool:
-        enriched = list(pool.map(_enrich, curated_to_enrich)) if curated_to_enrich else []
+        enriched = list(pool.map(_enrich, retrieved)) if retrieved else []
 
     context_blocks = []
     if enriched:
