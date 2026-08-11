@@ -8,7 +8,7 @@ from groq import Groq, RateLimitError
 
 from app.services.climate_service import get_best_months
 from app.services.hotel_price_service import get_budget_tier, get_hotels
-from app.services.lifestyle_service import get_lifestyle
+from app.services.lifestyle_service import get_lifestyle, get_places_of_worship
 from app.services.restaurant_service import get_restaurants
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
@@ -48,7 +48,7 @@ LIFESTYLE_LABELS = {
 }
 
 
-def _format_context(restaurants, lifestyle, hotels, budget, best_months):
+def _format_context(restaurants, lifestyle, hotels, budget, best_months, worship_places):
     lines = []
 
     if best_months:
@@ -76,6 +76,11 @@ def _format_context(restaurants, lifestyle, hotels, budget, best_months):
             lines.append(f"\nReal {label.lower()}:")
             for p in places[:8]:
                 lines.append(f"- {p['name']}")
+
+    if worship_places:
+        lines.append("\nReal temples/churches/mosques/other places of worship:")
+        for p in worship_places[:8]:
+            lines.append(f"- {p['name']}")
 
     return "\n".join(lines) if lines else "No real data available for this destination."
 
@@ -147,20 +152,22 @@ def generate_itinerary(destination_name, city, country, days, interests=None):
     except (TypeError, ValueError):
         days = 3
 
-    with ThreadPoolExecutor(max_workers=4) as pool:
+    with ThreadPoolExecutor(max_workers=5) as pool:
         restaurants_f = pool.submit(get_restaurants, city, country)
         lifestyle_f = pool.submit(get_lifestyle, city, country)
         hotels_f = pool.submit(get_hotels, city, country)
         best_months_f = pool.submit(get_best_months, city, country)
+        worship_f = pool.submit(get_places_of_worship, city, country)
 
         restaurants = restaurants_f.result()
         lifestyle = lifestyle_f.result()
         hotels = hotels_f.result()
         best_months = best_months_f.result()
+        worship_places = worship_f.result()
 
     budget = get_budget_tier(city, country)
 
-    context = _format_context(restaurants, lifestyle, hotels, budget, best_months)
+    context = _format_context(restaurants, lifestyle, hotels, budget, best_months, worship_places)
 
     interest_note = f" The traveler is interested in: {interests}." if interests else ""
     user_message = (
@@ -181,6 +188,7 @@ def generate_itinerary(destination_name, city, country, days, interests=None):
             "restaurants": [r["name"] for r in restaurants[:12]],
             "lifestyle": {k: [p["name"] for p in v[:8]] for k, v in lifestyle.items() if v},
             "hotels": [h["name"] for h in hotels[:5]],
+            "placesOfWorship": [p["name"] for p in worship_places[:8]],
             "bestMonths": best_months,
             "budget": budget,
         },

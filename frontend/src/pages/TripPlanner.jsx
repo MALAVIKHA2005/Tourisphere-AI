@@ -231,7 +231,7 @@ export default function TripPlanner() {
                 </div>
               )}
 
-              {(sources.restaurants?.length > 0 || sources.hotels?.length > 0 || hasLifestyleSources) && (
+              {(sources.restaurants?.length > 0 || sources.hotels?.length > 0 || sources.placesOfWorship?.length > 0 || hasLifestyleSources) && (
                 <div className="bg-gray-50 rounded-2xl p-6">
                   <p className="text-xs uppercase tracking-wide text-gray-400 mb-3">
                     Real data this itinerary was built from
@@ -253,6 +253,17 @@ export default function TripPlanner() {
                       <div className="flex flex-wrap gap-1.5 items-center">
                         <span className="text-xs font-semibold text-gray-500">🏨 Hotels:</span>
                         {sources.hotels.map((name) => (
+                          <span key={name} className="text-xs bg-white text-gray-600 px-2 py-0.5 rounded-full border border-gray-200">
+                            {name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {sources.placesOfWorship?.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 items-center">
+                        <span className="text-xs font-semibold text-gray-500">🛕 Places of Worship:</span>
+                        {sources.placesOfWorship.map((name) => (
                           <span key={name} className="text-xs bg-white text-gray-600 px-2 py-0.5 rounded-full border border-gray-200">
                             {name}
                           </span>

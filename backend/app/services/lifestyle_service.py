@@ -136,3 +136,36 @@ def _fetch_lifestyle(city, country):
         )
 
     return dict(results)
+
+
+RELIGION_CATEGORIES = "religion.place_of_worship"
+_worship_cache = {}
+
+
+def get_places_of_worship(city, country):
+    """
+    Real temples/churches/mosques/shrines near a city -- kept separate
+    from the regular Lifestyle tabs (not every trip wants them front and
+    center), used by the AI Trip Planner when a traveler's interests
+    mention them. Verified real category: a Coimbatore test returned
+    real named temples (Koniamaan temple, New Sowdeshwari Amman Temple).
+    """
+
+    cache_key = f"worship|{(city or '').strip().lower()}|{(country or '').strip().lower()}"
+    cached = _worship_cache.get(cache_key)
+
+    if cached and cached["expires_at"] > time.time():
+        return cached["places"]
+
+    if not API_KEY or not city:
+        places = []
+    else:
+        place_id = _geocode_place_id(city, country)
+        places = _fetch_category(place_id, RELIGION_CATEGORIES) if place_id else []
+
+    _worship_cache[cache_key] = {
+        "places": places,
+        "expires_at": time.time() + CACHE_TTL_SECONDS,
+    }
+
+    return places
