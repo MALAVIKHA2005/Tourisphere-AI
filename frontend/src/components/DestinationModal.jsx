@@ -11,6 +11,7 @@ import { fetchSimilarDestinations } from "../services/recommendationEngineServic
 import { fetchInterestTrend } from "../services/forecastService";
 import InterestTrendChart from "./InterestTrendChart";
 import ReviewsSection from "./ReviewsSection";
+import BookingModal from "./BookingModal";
 
 const CURRENCY_SYMBOLS = { INR: "₹", USD: "$", EUR: "€", GBP: "£", JPY: "¥" };
 
@@ -69,6 +70,7 @@ const DestinationModal = ({ destination, onClose, onSelectDestination }) => {
   const [loadingSimilar, setLoadingSimilar] = useState(false);
   const [interestTrend, setInterestTrend] = useState(null);
   const [loadingInterestTrend, setLoadingInterestTrend] = useState(false);
+  const [bookingTarget, setBookingTarget] = useState(null);
 
   useEffect(() => {
     fetchExchangeRates().then(setExchangeRates);
@@ -371,17 +373,28 @@ const DestinationModal = ({ destination, onClose, onSelectDestination }) => {
                       ) : (
                         <p className="text-xs text-gray-400 mt-1">No live rates found</p>
                       )}
-                      {h.url && (
-                        <a
-                          href={h.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-orange-600 hover:text-orange-700 hover:underline mt-1 inline-block font-medium"
-                          onClick={(e) => e.stopPropagation()}
+                      <div className="flex items-center gap-3 mt-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setBookingTarget({ type: "hotel", place: h });
+                          }}
+                          className="text-xs bg-gradient-to-r from-orange-500 to-pink-500 text-white px-3 py-1 rounded-full font-semibold hover:shadow-md transition-all"
                         >
-                          View & Book on TripAdvisor →
-                        </a>
-                      )}
+                          Book on Tourisphere
+                        </button>
+                        {h.url && (
+                          <a
+                            href={h.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-orange-600 hover:text-orange-700 hover:underline font-medium"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            View on TripAdvisor →
+                          </a>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -670,17 +683,28 @@ const DestinationModal = ({ destination, onClose, onSelectDestination }) => {
                         {r.openingHours && (
                           <p className="text-xs text-gray-400 mt-1">🕒 {r.openingHours}</p>
                         )}
-                        {r.latitude && r.longitude && (
-                          <a
-                            href={`https://www.google.com/maps?q=${r.latitude},${r.longitude}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-orange-600 hover:text-orange-700 hover:underline mt-1 inline-block font-medium"
-                            onClick={(e) => e.stopPropagation()}
+                        <div className="flex items-center gap-3 mt-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setBookingTarget({ type: "restaurant", place: r });
+                            }}
+                            className="text-xs bg-gradient-to-r from-orange-500 to-pink-500 text-white px-3 py-1 rounded-full font-semibold hover:shadow-md transition-all"
                           >
-                            View on Map →
-                          </a>
-                        )}
+                            Reserve a Table
+                          </button>
+                          {r.latitude && r.longitude && (
+                            <a
+                              href={`https://www.google.com/maps?q=${r.latitude},${r.longitude}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-orange-600 hover:text-orange-700 hover:underline font-medium"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              View on Map →
+                            </a>
+                          )}
+                        </div>
                       </div>
                     ))}
                 </div>
@@ -751,6 +775,19 @@ const DestinationModal = ({ destination, onClose, onSelectDestination }) => {
         </div>
 
       </div>
+
+      {bookingTarget && (
+        <BookingModal
+          type={bookingTarget.type}
+          place={bookingTarget.place}
+          destination={{
+            name: destination.name,
+            city: destination.city || destination.name,
+            country: destination.country,
+          }}
+          onClose={() => setBookingTarget(null)}
+        />
+      )}
 
     </div>
   );

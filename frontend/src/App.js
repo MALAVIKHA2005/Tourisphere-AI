@@ -8,6 +8,7 @@ import Sentiment from "./pages/Sentiment";
 import Dataset from "./pages/Dataset";
 import Assistant from "./pages/Assistant";
 import TripPlanner from "./pages/TripPlanner";
+import Bookings from "./pages/Bookings";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Privacy from "./pages/Privacy";
@@ -151,6 +152,13 @@ function App() {
             Trip Planner
           </button>
 
+          <button
+            onClick={() => setActivePage("bookings")}
+            className={navButtonClass(activePage === "bookings")}
+          >
+            My Bookings
+          </button>
+
         </div>
 
         <button
@@ -181,6 +189,8 @@ function App() {
         {activePage === "assistant" && <Assistant />}
 
         {activePage === "tripPlanner" && <TripPlanner />}
+
+        {activePage === "bookings" && <Bookings />}
 
         {activePage === "login" && (
           <Login
