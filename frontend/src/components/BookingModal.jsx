@@ -13,6 +13,21 @@ const dayAfter = () => {
   return d.toISOString().split("T")[0];
 };
 
+// Booking.com's public search URL -- no API key or partnership needed.
+// We don't have Booking.com's own hotel IDs (our hotel data comes from
+// Xotelo/TripAdvisor), so this can't deep-link to the exact same listing,
+// but it opens a real, live search for the same city and dates, and any
+// booking made there is a real one completed on Booking.com's system.
+const buildBookingComUrl = (destination, checkIn, checkOut, guests) => {
+  const params = new URLSearchParams({
+    ss: `${destination.city || destination.name}${destination.country ? ", " + destination.country : ""}`,
+    checkin: checkIn,
+    checkout: checkOut,
+    group_adults: String(guests),
+  });
+  return `https://www.booking.com/searchresults.html?${params.toString()}`;
+};
+
 const BookingModal = ({ type, place, destination, onClose, onBooked }) => {
   const [checkIn, setCheckIn] = useState(tomorrow());
   const [checkOut, setCheckOut] = useState(dayAfter());
@@ -26,19 +41,28 @@ const BookingModal = ({ type, place, destination, onClose, onBooked }) => {
 
   const handleSubmit = async () => {
     setError("");
+
+    if (type === "hotel") {
+      // No internal record for hotels -- this hands off to a real
+      // external booking flow instead of pretending we took one.
+      window.open(
+        buildBookingComUrl(destination, checkIn, checkOut, guests),
+        "_blank",
+        "noopener,noreferrer"
+      );
+      onClose();
+      return;
+    }
+
     setSubmitting(true);
 
     const payload = {
       type,
       place,
       destination,
-      ...(type === "hotel"
-        ? { check_in: checkIn, check_out: checkOut, guests: Number(guests) }
-        : {
-            reservation_date: reservationDate,
-            reservation_time: reservationTime,
-            party_size: Number(partySize),
-          }),
+      reservation_date: reservationDate,
+      reservation_time: reservationTime,
+      party_size: Number(partySize),
     };
 
     try {
@@ -64,18 +88,19 @@ const BookingModal = ({ type, place, destination, onClose, onBooked }) => {
         {confirmed ? (
           <>
             <p className="text-3xl mb-2">✅</p>
-            <h3 className="text-xl font-bold mb-1">Booking confirmed</h3>
+            <h3 className="text-xl font-bold mb-1">Saved to My Bookings</h3>
             <p className="text-sm text-gray-500 mb-4">
               Reference <span className="font-mono font-semibold">{confirmed.booking_reference}</span>
             </p>
             <div className="bg-gray-50 rounded-xl p-4 text-sm space-y-1 mb-4">
               <p className="font-semibold">{place.name}</p>
-              {type === "hotel" ? (
-                <p className="text-gray-500">{confirmed.check_in} → {confirmed.check_out} · {confirmed.guests} guest(s)</p>
-              ) : (
-                <p className="text-gray-500">{confirmed.reservation_date} at {confirmed.reservation_time} · party of {confirmed.party_size}</p>
-              )}
+              <p className="text-gray-500">{confirmed.reservation_date} at {confirmed.reservation_time} · party of {confirmed.party_size}</p>
             </div>
+            <p className="text-xs text-gray-400 mb-4">
+              This is a personal planning record inside Tourisphere only -- it
+              hasn't been sent to {place.name}. Call or visit them directly to
+              actually hold a table.
+            </p>
             <button
               onClick={onClose}
               className="w-full bg-gradient-to-r from-orange-500 to-pink-500 text-white py-2.5 rounded-xl font-semibold"
@@ -86,10 +111,15 @@ const BookingModal = ({ type, place, destination, onClose, onBooked }) => {
         ) : (
           <>
             <h3 className="text-xl font-bold mb-1">
-              Book {type === "hotel" ? "🏨" : "🍽️"} {place.name}
+              {type === "hotel" ? "🏨" : "🍽️"} {place.name}
             </h3>
-            <p className="text-sm text-gray-500 mb-4">
+            <p className="text-sm text-gray-500 mb-1">
               {destination.city || destination.name}{destination.country ? `, ${destination.country}` : ""}
+            </p>
+            <p className="text-xs text-gray-400 mb-4">
+              {type === "hotel"
+                ? "Pick your dates and we'll open a real, live search on Booking.com for this city -- the actual booking happens there."
+                : "This saves a personal planning record in Tourisphere -- it doesn't contact the restaurant. Call ahead to actually reserve."}
             </p>
 
             {type === "hotel" ? (
@@ -115,7 +145,7 @@ const BookingModal = ({ type, place, destination, onClose, onBooked }) => {
                   />
                 </div>
                 <div className="col-span-2">
-                  <label className="text-xs uppercase tracking-wide text-gray-400 mb-1 block">Guests</label>
+                  <label className="text-xs uppercase tracking-wide text-gray-400 mb-1 block">Adults</label>
                   <input
                     type="number"
                     min={1}
@@ -173,7 +203,11 @@ const BookingModal = ({ type, place, destination, onClose, onBooked }) => {
                 disabled={submitting}
                 className="flex-1 bg-gradient-to-r from-orange-500 to-pink-500 text-white py-2.5 rounded-xl font-semibold shadow-sm hover:shadow-md active:scale-[0.98] transition-all disabled:opacity-50"
               >
-                {submitting ? "Booking..." : "Confirm Booking"}
+                {submitting
+                  ? "Saving..."
+                  : type === "hotel"
+                  ? "Search on Booking.com →"
+                  : "Save to My Bookings"}
               </button>
             </div>
           </>

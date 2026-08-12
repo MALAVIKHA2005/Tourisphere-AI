@@ -125,15 +125,16 @@ export default function Bookings() {
         <h1 className="text-5xl font-bold mt-2">My Bookings</h1>
 
         <p className="text-gray-500 mt-4 mb-10 max-w-2xl">
-          Real reservations against this platform's own real hotel and restaurant
-          data -- booked from a destination's page, tracked here, cancellable
-          any time. No payment is taken; this is a reservation record, not a
-          checkout.
+          Personal restaurant reservation plans saved from a destination's page --
+          tracked here, cancellable any time. These are planning records inside
+          Tourisphere only, not sent to the restaurant. For hotels, "book" now
+          hands off to a real, live search on Booking.com instead of pretending
+          to reserve one ourselves.
         </p>
 
         {bookings.length === 0 ? (
           <div className="bg-white rounded-2xl shadow-sm p-10 text-center text-gray-500">
-            No bookings yet. Open a destination and book a hotel or restaurant
+            No bookings yet. Open a destination and reserve a restaurant table
             to see it here.
           </div>
         ) : (

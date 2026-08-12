@@ -381,7 +381,7 @@ const DestinationModal = ({ destination, onClose, onSelectDestination }) => {
                           }}
                           className="text-xs bg-gradient-to-r from-orange-500 to-pink-500 text-white px-3 py-1 rounded-full font-semibold hover:shadow-md transition-all"
                         >
-                          Book on Tourisphere
+                          Check dates &amp; book →
                         </button>
                         {h.url && (
                           <a
@@ -407,8 +407,10 @@ const DestinationModal = ({ destination, onClose, onSelectDestination }) => {
 
             <p className="text-xs text-gray-400 mb-3">
               Real road distance &amp; time via routing -- no free source exists for
-              real flight/train/bus fares, so this covers road trips only. Cost is a
-              rough per-km estimate, not a live price.
+              real flight/train/bus fares, so this covers road trips only.
+              {routeMode === "taxi" || routeMode === "auto"
+                ? " Taxi/Auto reuse the real driving route, with a rough typical fare-per-km estimate -- not a live metered price."
+                : " Cost is a rough per-km estimate, not a live price."}
             </p>
 
             <div className="flex flex-col sm:flex-row gap-2 mb-3">
@@ -427,6 +429,8 @@ const DestinationModal = ({ destination, onClose, onSelectDestination }) => {
                 className="text-sm border border-gray-200 rounded-xl px-2 py-2 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-orange-400"
               >
                 <option value="drive">🚗 Drive</option>
+                <option value="taxi">🚕 Taxi</option>
+                <option value="auto">🛺 Auto</option>
                 <option value="bicycle">🚴 Bicycle</option>
                 <option value="walk">🚶 Walk</option>
               </select>
@@ -463,6 +467,26 @@ const DestinationModal = ({ destination, onClose, onSelectDestination }) => {
                   <p className="text-xs uppercase tracking-wide text-gray-400">Est. Cost</p>
                   <p className="font-semibold">{convertPrice(route.estimated_cost_usd)}</p>
                 </div>
+              </div>
+            )}
+
+            {!loadingRoute && route?.available && route.uber_deep_link && (routeMode === "taxi" || routeMode === "auto") && (
+              <div className="mt-3">
+                <a
+                  href={route.uber_deep_link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block text-sm bg-black text-white px-4 py-2 rounded-xl font-semibold hover:opacity-90 transition-opacity"
+                >
+                  🚕 Request a real ride on Uber →
+                </a>
+                {routeMode === "auto" && (
+                  <p className="text-xs text-gray-400 mt-2">
+                    No free API can book an auto-rickshaw directly -- this opens a real
+                    Uber ride request for the same pickup/drop-off; pick Auto there if
+                    it's offered in your city.
+                  </p>
+                )}
               </div>
             )}
           </div>

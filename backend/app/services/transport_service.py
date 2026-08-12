@@ -19,6 +19,14 @@ _route_cache = {}
 # rather than presented as a real price.
 COST_PER_KM_USD = 0.12
 
+# Taxi/auto-rickshaw aren't real routing modes -- they drive the same
+# roads a private car does, so both reuse Geoapify's "drive" route (real
+# distance/time) and only swap in a different rough per-km fare, typical
+# of metered taxi vs. auto-rickshaw rates. No live fare API exists free,
+# so both stay clearly labeled as estimates, same as COST_PER_KM_USD above.
+GEOAPIFY_MODE_OVERRIDE = {"taxi": "drive", "auto": "drive"}
+FARE_PER_KM_USD = {"taxi": 0.35, "auto": 0.18}
+
 COORD_PATTERN = re.compile(r"^\s*(-?\d+(\.\d+)?)\s*,\s*(-?\d+(\.\d+)?)\s*$")
 
 
@@ -79,11 +87,12 @@ def get_route(from_value, to_value, mode="drive"):
         if origin and destination:
             try:
                 waypoints = f"{origin[0]},{origin[1]}|{destination[0]},{destination[1]}"
+                geoapify_mode = GEOAPIFY_MODE_OVERRIDE.get(mode, mode)
 
                 url = (
                     "https://api.geoapify.com/v1/routing"
                     f"?waypoints={waypoints}"
-                    f"&mode={mode}"
+                    f"&mode={geoapify_mode}"
                     f"&apiKey={API_KEY}"
                 )
 
@@ -94,13 +103,22 @@ def get_route(from_value, to_value, mode="drive"):
                     props = data["features"][0]["properties"]
                     distance_km = round(props["distance"] / 1000, 1)
                     duration_minutes = round(props["time"] / 60)
+                    cost_per_km = FARE_PER_KM_USD.get(mode, COST_PER_KM_USD)
 
                     result = {
                         "available": True,
                         "mode": mode,
                         "distance_km": distance_km,
                         "duration_minutes": duration_minutes,
-                        "estimated_cost_usd": round(distance_km * COST_PER_KM_USD, 2),
+                        "estimated_cost_usd": round(distance_km * cost_per_km, 2),
+                        # Real, no-API-key-needed handoff to Uber's own ride
+                        # request flow -- prefilled pickup/drop-off, the
+                        # actual booking happens on Uber's real platform.
+                        "uber_deep_link": (
+                            "https://m.uber.com/ul/?action=setPickup"
+                            f"&pickup[latitude]={origin[0]}&pickup[longitude]={origin[1]}"
+                            f"&dropoff[latitude]={destination[0]}&dropoff[longitude]={destination[1]}"
+                        ),
                     }
 
                 else:
@@ -113,7 +131,7 @@ def get_route(from_value, to_value, mode="drive"):
                     error_message = (data.get("message") or "").lower()
 
                     if "exceed" in error_message or "too long" in error_message:
-                        if mode == "drive":
+                        if geoapify_mode == "drive":
                             reason = "That's too far apart for a direct road route."
                         else:
                             reason = f"That's too far to {mode} directly -- try Drive instead."
