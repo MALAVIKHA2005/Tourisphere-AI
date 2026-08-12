@@ -18,10 +18,6 @@ travel_history_collection = db["travel_history"]
 
 users_collection = db["users"]
 
-bookings_collection = db["bookings"]
-
-payments_collection = db["payments"]
-
 reviews_collection = db["reviews"]
 
 chat_history_collection = db["chat_history"]

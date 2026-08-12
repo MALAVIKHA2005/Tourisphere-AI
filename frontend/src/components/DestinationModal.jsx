@@ -70,7 +70,7 @@ const DestinationModal = ({ destination, onClose, onSelectDestination }) => {
   const [loadingSimilar, setLoadingSimilar] = useState(false);
   const [interestTrend, setInterestTrend] = useState(null);
   const [loadingInterestTrend, setLoadingInterestTrend] = useState(false);
-  const [bookingTarget, setBookingTarget] = useState(null);
+  const [bookingHotel, setBookingHotel] = useState(null);
 
   useEffect(() => {
     fetchExchangeRates().then(setExchangeRates);
@@ -377,7 +377,7 @@ const DestinationModal = ({ destination, onClose, onSelectDestination }) => {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            setBookingTarget({ type: "hotel", place: h });
+                            setBookingHotel(h);
                           }}
                           className="text-xs bg-gradient-to-r from-orange-500 to-pink-500 text-white px-3 py-1 rounded-full font-semibold hover:shadow-md transition-all"
                         >
@@ -708,26 +708,17 @@ const DestinationModal = ({ destination, onClose, onSelectDestination }) => {
                           <p className="text-xs text-gray-400 mt-1">🕒 {r.openingHours}</p>
                         )}
                         <div className="flex items-center gap-3 mt-2">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setBookingTarget({ type: "restaurant", place: r });
-                            }}
+                          <a
+                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                              `${r.name}, ${r.address || ""}`
+                            )}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="text-xs bg-gradient-to-r from-orange-500 to-pink-500 text-white px-3 py-1 rounded-full font-semibold hover:shadow-md transition-all"
+                            onClick={(e) => e.stopPropagation()}
                           >
-                            Reserve a Table
-                          </button>
-                          {r.latitude && r.longitude && (
-                            <a
-                              href={`https://www.google.com/maps?q=${r.latitude},${r.longitude}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs text-orange-600 hover:text-orange-700 hover:underline font-medium"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              View on Map →
-                            </a>
-                          )}
+                            View &amp; Reserve on Google Maps →
+                          </a>
                         </div>
                       </div>
                     ))}
@@ -800,16 +791,15 @@ const DestinationModal = ({ destination, onClose, onSelectDestination }) => {
 
       </div>
 
-      {bookingTarget && (
+      {bookingHotel && (
         <BookingModal
-          type={bookingTarget.type}
-          place={bookingTarget.place}
+          place={bookingHotel}
           destination={{
             name: destination.name,
             city: destination.city || destination.name,
             country: destination.country,
           }}
-          onClose={() => setBookingTarget(null)}
+          onClose={() => setBookingHotel(null)}
         />
       )}
 

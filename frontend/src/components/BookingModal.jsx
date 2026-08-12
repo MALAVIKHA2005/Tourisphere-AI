@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { createBooking } from "../services/bookingService";
 
 const tomorrow = () => {
   const d = new Date();
@@ -28,52 +27,18 @@ const buildBookingComUrl = (destination, checkIn, checkOut, guests) => {
   return `https://www.booking.com/searchresults.html?${params.toString()}`;
 };
 
-const BookingModal = ({ type, place, destination, onClose, onBooked }) => {
+const BookingModal = ({ place, destination, onClose }) => {
   const [checkIn, setCheckIn] = useState(tomorrow());
   const [checkOut, setCheckOut] = useState(dayAfter());
   const [guests, setGuests] = useState(2);
-  const [reservationDate, setReservationDate] = useState(tomorrow());
-  const [reservationTime, setReservationTime] = useState("19:00");
-  const [partySize, setPartySize] = useState(2);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
-  const [confirmed, setConfirmed] = useState(null);
 
-  const handleSubmit = async () => {
-    setError("");
-
-    if (type === "hotel") {
-      // No internal record for hotels -- this hands off to a real
-      // external booking flow instead of pretending we took one.
-      window.open(
-        buildBookingComUrl(destination, checkIn, checkOut, guests),
-        "_blank",
-        "noopener,noreferrer"
-      );
-      onClose();
-      return;
-    }
-
-    setSubmitting(true);
-
-    const payload = {
-      type,
-      place,
-      destination,
-      reservation_date: reservationDate,
-      reservation_time: reservationTime,
-      party_size: Number(partySize),
-    };
-
-    try {
-      const booking = await createBooking(payload);
-      setConfirmed(booking);
-      onBooked && onBooked(booking);
-    } catch (e) {
-      setError(e.message || "Couldn't complete the booking. Please try again.");
-    } finally {
-      setSubmitting(false);
-    }
+  const handleSubmit = () => {
+    window.open(
+      buildBookingComUrl(destination, checkIn, checkOut, guests),
+      "_blank",
+      "noopener,noreferrer"
+    );
+    onClose();
   };
 
   return (
@@ -85,133 +50,62 @@ const BookingModal = ({ type, place, destination, onClose, onBooked }) => {
         className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6"
         onClick={(e) => e.stopPropagation()}
       >
-        {confirmed ? (
-          <>
-            <p className="text-3xl mb-2">✅</p>
-            <h3 className="text-xl font-bold mb-1">Saved to My Bookings</h3>
-            <p className="text-sm text-gray-500 mb-4">
-              Reference <span className="font-mono font-semibold">{confirmed.booking_reference}</span>
-            </p>
-            <div className="bg-gray-50 rounded-xl p-4 text-sm space-y-1 mb-4">
-              <p className="font-semibold">{place.name}</p>
-              <p className="text-gray-500">{confirmed.reservation_date} at {confirmed.reservation_time} · party of {confirmed.party_size}</p>
-            </div>
-            <p className="text-xs text-gray-400 mb-4">
-              This is a personal planning record inside Tourisphere only -- it
-              hasn't been sent to {place.name}. Call or visit them directly to
-              actually hold a table.
-            </p>
-            <button
-              onClick={onClose}
-              className="w-full bg-gradient-to-r from-orange-500 to-pink-500 text-white py-2.5 rounded-xl font-semibold"
-            >
-              Done
-            </button>
-          </>
-        ) : (
-          <>
-            <h3 className="text-xl font-bold mb-1">
-              {type === "hotel" ? "🏨" : "🍽️"} {place.name}
-            </h3>
-            <p className="text-sm text-gray-500 mb-1">
-              {destination.city || destination.name}{destination.country ? `, ${destination.country}` : ""}
-            </p>
-            <p className="text-xs text-gray-400 mb-4">
-              {type === "hotel"
-                ? "Pick your dates and we'll open a real, live search on Booking.com for this city -- the actual booking happens there."
-                : "This saves a personal planning record in Tourisphere -- it doesn't contact the restaurant. Call ahead to actually reserve."}
-            </p>
+        <h3 className="text-xl font-bold mb-1">🏨 {place.name}</h3>
+        <p className="text-sm text-gray-500 mb-1">
+          {destination.city || destination.name}{destination.country ? `, ${destination.country}` : ""}
+        </p>
+        <p className="text-xs text-gray-400 mb-4">
+          Pick your dates and we'll open a real, live search on Booking.com for
+          this city -- the actual booking happens there, not here.
+        </p>
 
-            {type === "hotel" ? (
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <div>
-                  <label className="text-xs uppercase tracking-wide text-gray-400 mb-1 block">Check-in</label>
-                  <input
-                    type="date"
-                    value={checkIn}
-                    min={tomorrow()}
-                    onChange={(e) => setCheckIn(e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-orange-400"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs uppercase tracking-wide text-gray-400 mb-1 block">Check-out</label>
-                  <input
-                    type="date"
-                    value={checkOut}
-                    min={checkIn}
-                    onChange={(e) => setCheckOut(e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-orange-400"
-                  />
-                </div>
-                <div className="col-span-2">
-                  <label className="text-xs uppercase tracking-wide text-gray-400 mb-1 block">Adults</label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={guests}
-                    onChange={(e) => setGuests(e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-orange-400"
-                  />
-                </div>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <div>
-                  <label className="text-xs uppercase tracking-wide text-gray-400 mb-1 block">Date</label>
-                  <input
-                    type="date"
-                    value={reservationDate}
-                    min={tomorrow()}
-                    onChange={(e) => setReservationDate(e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-orange-400"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs uppercase tracking-wide text-gray-400 mb-1 block">Time</label>
-                  <input
-                    type="time"
-                    value={reservationTime}
-                    onChange={(e) => setReservationTime(e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-orange-400"
-                  />
-                </div>
-                <div className="col-span-2">
-                  <label className="text-xs uppercase tracking-wide text-gray-400 mb-1 block">Party size</label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={partySize}
-                    onChange={(e) => setPartySize(e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-orange-400"
-                  />
-                </div>
-              </div>
-            )}
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          <div>
+            <label className="text-xs uppercase tracking-wide text-gray-400 mb-1 block">Check-in</label>
+            <input
+              type="date"
+              value={checkIn}
+              min={tomorrow()}
+              onChange={(e) => setCheckIn(e.target.value)}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-orange-400"
+            />
+          </div>
+          <div>
+            <label className="text-xs uppercase tracking-wide text-gray-400 mb-1 block">Check-out</label>
+            <input
+              type="date"
+              value={checkOut}
+              min={checkIn}
+              onChange={(e) => setCheckOut(e.target.value)}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-orange-400"
+            />
+          </div>
+          <div className="col-span-2">
+            <label className="text-xs uppercase tracking-wide text-gray-400 mb-1 block">Adults</label>
+            <input
+              type="number"
+              min={1}
+              value={guests}
+              onChange={(e) => setGuests(e.target.value)}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-orange-400"
+            />
+          </div>
+        </div>
 
-            {error && <p className="text-sm text-red-500 mb-3">{error}</p>}
-
-            <div className="flex gap-2">
-              <button
-                onClick={onClose}
-                className="flex-1 bg-gray-100 text-gray-600 py-2.5 rounded-xl font-semibold hover:bg-gray-200"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={submitting}
-                className="flex-1 bg-gradient-to-r from-orange-500 to-pink-500 text-white py-2.5 rounded-xl font-semibold shadow-sm hover:shadow-md active:scale-[0.98] transition-all disabled:opacity-50"
-              >
-                {submitting
-                  ? "Saving..."
-                  : type === "hotel"
-                  ? "Search on Booking.com →"
-                  : "Save to My Bookings"}
-              </button>
-            </div>
-          </>
-        )}
+        <div className="flex gap-2">
+          <button
+            onClick={onClose}
+            className="flex-1 bg-gray-100 text-gray-600 py-2.5 rounded-xl font-semibold hover:bg-gray-200"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            className="flex-1 bg-gradient-to-r from-orange-500 to-pink-500 text-white py-2.5 rounded-xl font-semibold shadow-sm hover:shadow-md active:scale-[0.98] transition-all"
+          >
+            Search on Booking.com →
+          </button>
+        </div>
       </div>
     </div>
   );
