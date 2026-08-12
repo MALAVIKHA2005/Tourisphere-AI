@@ -26,6 +26,8 @@ trip_plans_collection = db["trip_plans"]
 
 search_history_collection = db["search_history"]
 
+expenses_collection = db["expenses"]
+
 try:
     users_collection.create_index("email", unique=True)
     print("MongoDB Connected Successfully")

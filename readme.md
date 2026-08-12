@@ -71,7 +71,7 @@ Live hotel pricing is powered by [Xotelo](https://xotelo.com/) via RapidAPI (Ama
 | Phase 17 | RAG AI Assistant (retrieval grounded in real platform data, Groq/Llama 3.3 for generation) | ✅ Completed |
 | Phase 18 | AI Trip Planner (real itinerary built from real nearby restaurants/hotels/lifestyle data) | ✅ Completed |
 | Phase 19 | Booking System (real handoffs, not an internal illusion: hotels open a real live Booking.com search, restaurants open the real listing on Google Maps, and Getting There adds a real Uber ride-request deep link -- no free API can write an actual reservation, so nothing is faked as one) | ✅ Completed |
-| Phase 20 | Expense Tracker | ⏳ Planned |
+| Phase 20 | Expense Tracker (real user-entered spending, by category and destination, with totals converted to a chosen currency via the same live exchange rates used elsewhere) | ✅ Completed |
 | Phase 21 | Government Tourism Analytics Dashboard | ⏳ Planned |
 | Phase 22 | Cloud Deployment | ⏳ Planned |
 
@@ -173,7 +173,6 @@ To build a scalable AI-powered travel platform that combines recommendation syst
 # 🔮 Future Enhancements
 
 - Government Tourism Analytics Dashboard
-- Expense Tracking
 - Multi-language Support
 
 ---
