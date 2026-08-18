@@ -9,6 +9,7 @@ import Dataset from "./pages/Dataset";
 import Assistant from "./pages/Assistant";
 import TripPlanner from "./pages/TripPlanner";
 import ExpenseTracker from "./pages/ExpenseTracker";
+import GovernmentDashboard from "./pages/GovernmentDashboard";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Privacy from "./pages/Privacy";
@@ -159,6 +160,13 @@ function App() {
             Expense Tracker
           </button>
 
+          <button
+            onClick={() => setActivePage("government")}
+            className={navButtonClass(activePage === "government")}
+          >
+            Gov Tourism Dashboard
+          </button>
+
         </div>
 
         <button
@@ -191,6 +199,8 @@ function App() {
         {activePage === "tripPlanner" && <TripPlanner />}
 
         {activePage === "expenses" && <ExpenseTracker />}
+
+        {activePage === "government" && <GovernmentDashboard />}
 
 
         {activePage === "login" && (

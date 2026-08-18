@@ -51,3 +51,4 @@ export default function TravelPurposeChart({ data }) {
     </div>
   );
 }
+

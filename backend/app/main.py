@@ -31,6 +31,7 @@ from app.routes.sentiment import router as sentiment_router
 from app.routes.rag import router as rag_router
 from app.routes.trip_planner import router as trip_planner_router
 from app.routes.expense import router as expense_router
+from app.routes.government_analytics import router as government_analytics_router
 from app.routes.destinations import (
     router as destinations_router
 )
@@ -89,6 +90,7 @@ app.include_router(sentiment_router)
 app.include_router(rag_router)
 app.include_router(trip_planner_router)
 app.include_router(expense_router)
+app.include_router(government_analytics_router)
 @app.get("/")
 def root():
     return {
