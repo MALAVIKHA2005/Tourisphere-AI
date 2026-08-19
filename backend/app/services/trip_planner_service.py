@@ -138,6 +138,14 @@ def _generate(system_prompt, user_message, max_tokens):
                 messages=messages,
                 max_tokens=max_tokens,
                 temperature=0.5,
+                # gpt-oss-120b's hidden "reasoning" tokens share the same
+                # max_tokens budget as the visible answer -- confirmed
+                # directly: a real 3-day Isha Yoga Center request burned
+                # the whole budget on reasoning and returned an EMPTY
+                # itinerary with finish_reason "length" (reproduced 2/3
+                # times). Same class of bug as Gemini's thinking tokens
+                # above; capping reasoning effort fixed it 4/4 on retest.
+                reasoning_effort="low",
             )
             return response.choices[0].message.content
         except Exception as e:

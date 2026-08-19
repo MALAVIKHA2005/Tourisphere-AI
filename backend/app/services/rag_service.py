@@ -505,6 +505,15 @@ def ask(question, history=None):
                 messages=messages,
                 max_tokens=max_tokens,
                 temperature=0.4,
+                # gpt-oss-120b's hidden "reasoning" tokens share the same
+                # max_tokens budget as the visible answer (confirmed
+                # directly -- a real trip-planning prompt burned the
+                # entire budget on reasoning and returned an EMPTY
+                # answer with finish_reason "length", same class of bug
+                # already hit and fixed for Gemini's thinking tokens).
+                # Capping reasoning effort keeps that budget for the
+                # actual answer instead of padding max_tokens further.
+                reasoning_effort="low",
             )
             answer = response.choices[0].message.content
         except Exception as e:
