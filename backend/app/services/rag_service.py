@@ -107,7 +107,11 @@ SYSTEM_PROMPT = (
     "Firm rule: any FACTUAL claim about a destination (climate, budget, "
     "popularity, best months, rating, reviews) must come only from the "
     "real data given, never invented. If real data doesn't cover a trip-"
-    "planning request, say so and offer what IS available. Be concise."
+    "planning request, say so and offer what IS available. Be concise.\n\n"
+    "Output format is strict plain text, not Markdown: no tables, no "
+    "'|' pipe characters, no '##' headings, no '**' bold markers, no "
+    "'---' horizontal rules. If a list helps, use plain '- ' bullet "
+    "lines, one per line -- otherwise just write normal sentences."
 )
 
 
