@@ -41,8 +41,13 @@ SYSTEM_PROMPT = (
     "later days like a real traveler revisiting a place they liked (note "
     "briefly that it's a repeat visit), rather than treating it as a gap "
     "to apologize for. Only say a day can't be filled meaningfully if "
-    "there is truly no real data left to draw from at all. Format clearly "
-    "as \"Day 1\", \"Day 2\", etc., each with a short list of real activities."
+    "there is truly no real data left to draw from at all.\n\n"
+    "Output format is strict plain text, not Markdown: no tables, no "
+    "'|' pipe characters, no '##' headings, no '**' bold markers, no "
+    "'---' horizontal rules. Each day starts its own line as exactly "
+    "\"Day 1:\", \"Day 2:\", etc. (plain text, colon, nothing else on "
+    "that line), followed by a short list of real activities as plain "
+    "\"- \" bullet lines, one per line."
 )
 
 LIFESTYLE_LABELS = {
