@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 from google import genai
 from google.genai import errors as genai_errors
 from google.genai import types as genai_types
-from groq import Groq, RateLimitError
+from groq import Groq
 
 from app.services.climate_service import get_best_months
 from app.services.hotel_price_service import get_budget_tier, get_hotels
@@ -15,8 +15,14 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 GEMINI_MODEL = "gemini-flash-latest"
-GROQ_MODEL = "llama-3.3-70b-versatile"
-GROQ_FALLBACK_MODEL = "llama-3.1-8b-instant"
+# Groq deprecated the entire Llama 3.x lineup this used to run on
+# (llama-3.3-70b-versatile / llama-3.1-8b-instant both started 404ing
+# with zero warning) -- gpt-oss-120b is the replacement that passed the
+# same grounding tests the earlier models were picked for (see
+# rag_service.py for the full test, since both services share this
+# choice). Gemini stays primary here regardless, so this is only the
+# fallback path.
+GROQ_MODEL = "openai/gpt-oss-120b"
 
 _gemini_client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 _groq_client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
@@ -90,8 +96,8 @@ def _generate(system_prompt, user_message, max_tokens):
     Gemini is the primary generator -- a completely separate API key and
     quota from the RAG assistant's Groq usage, so heavy trip-planning use
     can no longer starve (or be starved by) the chat assistant. Falls
-    through to Groq's own two-model chain only if Gemini is unavailable
-    or rate-limited. Gemini's thinking budget shares the same output
+    through to Groq only if Gemini is unavailable or rate-limited.
+    Gemini's thinking budget shares the same output
     token pool as the visible answer (confirmed directly -- a tight cap
     left the real answer empty because thinking alone used it up), so
     this is given generous headroom rather than the tight budget tuned
@@ -121,21 +127,16 @@ def _generate(system_prompt, user_message, max_tokens):
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_message},
         ]
-        for model in (GROQ_MODEL, GROQ_FALLBACK_MODEL):
-            try:
-                response = _groq_client.chat.completions.create(
-                    model=model,
-                    messages=messages,
-                    max_tokens=max_tokens,
-                    temperature=0.5,
-                )
-                return response.choices[0].message.content
-            except RateLimitError as e:
-                print(f"Groq rate limit on {model}, trying next:", e)
-                continue
-            except Exception as e:
-                print("Groq Error:", e)
-                break
+        try:
+            response = _groq_client.chat.completions.create(
+                model=GROQ_MODEL,
+                messages=messages,
+                max_tokens=max_tokens,
+                temperature=0.5,
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            print("Groq Error:", e)
 
     return None
 

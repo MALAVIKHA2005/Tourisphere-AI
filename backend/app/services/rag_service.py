@@ -3,7 +3,9 @@ import re
 from concurrent.futures import ThreadPoolExecutor
 
 import requests
-from groq import Groq, RateLimitError
+from google import genai
+from google.genai import types as genai_types
+from groq import Groq
 
 from app.database.mongodb import destinations_collection
 from app.services.climate_service import get_best_months
@@ -13,15 +15,23 @@ from app.services.reviews_service import get_reviews
 from app.utils.identity import get_destination_key
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GEOAPIFY_API_KEY = os.getenv("GEOAPIFY_API_KEY")
-MODEL = "llama-3.3-70b-versatile"
-# Groq tracks each model's daily token quota separately -- a smaller,
-# lighter model that's gone largely unused still has its own headroom
-# even when the primary model's quota is exhausted. Used as an automatic
-# fallback, not the default, since it's a step down in answer quality.
-FALLBACK_MODEL = "llama-3.1-8b-instant"
+
+# Groq deprecated the entire Llama 3.x lineup this app originally used
+# (llama-3.3-70b-versatile / llama-3.1-8b-instant both started returning
+# 404 model_not_found with zero warning) -- of what's left on Groq's
+# hosted list, gpt-oss-20b was already disqualified earlier (fabricated a
+# whole different destination given real data) and qwen3.6-27b needs a
+# large, unpredictable hidden "thinking" token budget. gpt-oss-120b is
+# the one that passed the same grounding tests cleanly (stayed silent on
+# facts not in the real data, refused to fabricate an uncovered
+# destination), so it's the only Groq model in use now.
+GROQ_MODEL = "openai/gpt-oss-120b"
+GEMINI_MODEL = "gemini-flash-latest"
 
 _client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
+_gemini_client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 
 # Generic enough that matching on them proves nothing about which
 # destination a question is actually about -- same idea as
@@ -393,10 +403,34 @@ def _format_live_context(place, sights):
     return "\n".join(lines)
 
 
+def _messages_to_prompt(messages):
+    """
+    Flattens the Groq-style role/content message list into a single
+    prompt string for the Gemini fallback -- simpler than mapping
+    multi-turn roles onto Gemini's own format, and this path only runs
+    when Groq itself is unavailable, so it doesn't need to be as
+    polished as the primary path.
+    """
+
+    parts = []
+
+    for m in messages:
+        if m["role"] == "system":
+            parts.append(m["content"])
+        elif m["role"] == "user":
+            parts.append(f"User: {m['content']}")
+        elif m["role"] == "assistant":
+            parts.append(f"Assistant: {m['content']}")
+
+    parts.append("Assistant:")
+
+    return "\n\n".join(parts)
+
+
 def ask(question, history=None):
-    if not _client:
+    if not _client and not _gemini_client:
         return {
-            "answer": "The AI assistant isn't configured yet -- no GROQ_API_KEY is set on the server.",
+            "answer": "The AI assistant isn't configured yet -- no GROQ_API_KEY or GEMINI_API_KEY is set on the server.",
             "sources": [],
         }
 
@@ -458,28 +492,39 @@ def ask(question, history=None):
     messages.append({"role": "user", "content": question})
 
     answer = None
+    max_tokens = 350
 
-    for model in (MODEL, FALLBACK_MODEL):
+    if _client:
         try:
             response = _client.chat.completions.create(
-                model=model,
+                model=GROQ_MODEL,
                 messages=messages,
-                max_tokens=350,
+                max_tokens=max_tokens,
                 temperature=0.4,
             )
             answer = response.choices[0].message.content
-            break
-        except RateLimitError as e:
-            # The primary model's daily quota is exhausted -- fall
-            # through to the lighter model, which Groq tracks separately
-            # and very likely still has headroom on. Only swallow this
-            # on the primary model; if the fallback also rate-limits,
-            # that's a real "nothing left today" case worth surfacing.
-            print(f"Groq rate limit on {model}, trying fallback:", e)
-            continue
         except Exception as e:
-            print("Groq Error:", e)
-            break
+            # Any failure on Groq (rate limit, an outage, or a model
+            # getting deprecated out from under this app with zero
+            # warning, as already happened once) falls through to
+            # Gemini -- a completely separate provider, not just a
+            # smaller model on the same one that's already down.
+            print("Groq Error, falling back to Gemini:", e)
+
+    if answer is None and _gemini_client:
+        try:
+            response = _gemini_client.models.generate_content(
+                model=GEMINI_MODEL,
+                contents=_messages_to_prompt(messages),
+                config=genai_types.GenerateContentConfig(
+                    max_output_tokens=max_tokens + 1500,
+                    temperature=0.4,
+                    thinking_config=genai_types.ThinkingConfig(thinking_level="low"),
+                ),
+            )
+            answer = response.text
+        except Exception as e:
+            print("Gemini Error:", e)
 
     if answer is None:
         answer = "Something went wrong reaching the assistant. Please try again."
